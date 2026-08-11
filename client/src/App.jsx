@@ -6,6 +6,7 @@ import { Navbar } from './components/Navbar';
 import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
+import { ProfilePreferences } from './pages/ProfilePreferences';
 
 export default function App() {
   return (
@@ -54,10 +55,7 @@ export default function App() {
                 path="/profile"
                 element={
                   <ProtectedRoute>
-                    <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                      <h1 className="text-2xl font-bold text-white mb-2">User Memory & Preferences</h1>
-                      <p className="text-sm text-slate-400">Long-Term Memory Storage Active</p>
-                    </div>
+                    <ProfilePreferences />
                   </ProtectedRoute>
                 }
               />
