@@ -7,7 +7,9 @@ import { Login } from './pages/Login';
 import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
 import { ProfilePreferences } from './pages/ProfilePreferences';
+import { PlanTrip } from './pages/PlanTrip';
 
+// WanderWave MERN + LangGraph Router
 export default function App() {
   return (
     <AuthProvider>
@@ -33,10 +35,7 @@ export default function App() {
                 path="/plan"
                 element={
                   <ProtectedRoute>
-                    <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                      <h1 className="text-2xl font-bold text-white mb-2">Trip Planner Component</h1>
-                      <p className="text-sm text-slate-400">Scheduled for Days 4–7 Agent Integration</p>
-                    </div>
+                    <PlanTrip />
                   </ProtectedRoute>
                 }
               />

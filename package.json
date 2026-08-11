@@ -1,18 +1,20 @@
 {
   "name": "wanderwave-trip-planner",
   "version": "1.0.0",
-  "description": "Agentic AI Trip Planner using MERN Stack and LangGraph JS",
+  "description": "Agentic AI Trip Planner using MERN Stack and LangGraph Microservices",
   "main": "server/src/server.js",
   "scripts": {
-    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "dev": "concurrently \"npm run server\" \"npm run client\" \"npm run ai\"",
     "server": "npm --prefix server run dev",
     "client": "npm --prefix client run dev",
-    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+    "ai": "python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload --app-dir ai-service",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install && pip install -r ai-service/requirements.txt"
   },
   "keywords": [
     "agentic-ai",
     "langgraph",
     "mern",
+    "fastapi",
     "express",
     "react",
     "mongodb",

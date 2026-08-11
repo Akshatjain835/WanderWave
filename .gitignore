@@ -21,6 +21,15 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
+# Python Virtual Environment & Bytecode
+venv/
+.venv/
+ai-service/venv/
+ai-service/.venv/
+__pycache__/
+*.pyc
+*.pyo
+
 # System & IDE files
 .DS_Store
 Thumbs.db
