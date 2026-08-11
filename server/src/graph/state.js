@@ -67,34 +67,6 @@ export const TripStateAnnotation = Annotation.Root({
     default: () => [],
   }),
 
-  // Budget Allocation (Populated by Day 6 Agent)
-  budgetBreakdown: Annotation({
-    reducer: (x, y) => y ?? x,
-    default: () => ({}),
-  }),
-  totalEstimatedCost: Annotation({
-    reducer: (x, y) => y ?? x,
-    default: () => 0,
-  }),
-
-  // Generated Plan & Loop Control (Populated by Day 7 & 8 Agents)
-  itinerary: Annotation({
-    reducer: (x, y) => y ?? x,
-    default: () => ({}),
-  }),
-  validationErrors: Annotation({
-    reducer: (x, y) => y ?? x,
-    default: () => [],
-  }),
-  isValid: Annotation({
-    reducer: (x, y) => y ?? x,
-    default: () => false,
-  }),
-  retryCount: Annotation({
-    reducer: (x, y) => y ?? x,
-    default: () => 0,
-  }),
-
   // Human-in-the-Loop Interruption State
   requiresHumanInput: Annotation({
     reducer: (x, y) => y ?? x,

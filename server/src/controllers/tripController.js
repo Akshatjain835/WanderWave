@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { runRequirementAnalysis as runLocalRequirementAnalysis } from '../graph/workflow.js';
 
-// @desc    Analyze user trip request using Python LangGraph AI-Service / Gemini LLM
+// @desc    Analyze & Plan user trip request using Python LangGraph AI-Service / Gemini LLM
 // @route   POST /api/trips/analyze
 // @access  Private
 export const analyzeTripRequest = async (req, res) => {
@@ -61,13 +61,16 @@ export const analyzeTripRequest = async (req, res) => {
         travelStyle: localState.travelStyle,
         missingFields: localState.missingFields,
         userLongTermPreferences: localState.userLongTermPreferences,
+        weatherForecast: localState.weatherForecast,
+        transportOptions: localState.transportOptions,
+        placesFound: localState.placesFound,
         agentLogs: localState.agentLogs,
       };
     }
 
     res.status(200).json({
       success: true,
-      message: 'Trip requirement dynamically analyzed by LangGraph Agent 🧠',
+      message: 'Trip requirement analyzed and planned by LangGraph Agents 🧠',
       data: resultData,
     });
   } catch (error) {

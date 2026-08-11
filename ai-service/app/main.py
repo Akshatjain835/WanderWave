@@ -58,7 +58,7 @@ async def analyze_trip(request: AnalyzeRequest):
 
         return {
             "success": True,
-            "message": "Dynamic requirement analyzed by Python LangGraph Agent 1 🧠",
+            "message": "Trip requirement analyzed and researched by Python LangGraph Agents 🧠",
             "data": {
                 "destination": result_state.get("destination"),
                 "startingCity": result_state.get("starting_city"),
@@ -69,6 +69,9 @@ async def analyze_trip(request: AnalyzeRequest):
                 "travelStyle": result_state.get("travel_style"),
                 "missingFields": result_state.get("missing_fields", []),
                 "userLongTermPreferences": result_state.get("user_long_term_preferences", {}),
+                "weatherForecast": result_state.get("weather_forecast", {}),
+                "transportOptions": result_state.get("transport_options", []),
+                "placesFound": result_state.get("places_found", []),
                 "agentLogs": result_state.get("agent_logs", [])
             }
         }

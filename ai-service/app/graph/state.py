@@ -21,16 +21,6 @@ class TripState(TypedDict, total=False):
     weather_forecast: Dict[str, Any]
     transport_options: List[Dict[str, Any]]
 
-    # Budget Allocation (Day 6)
-    budget_breakdown: Dict[str, float]
-    total_estimated_cost: float
-
-    # Generated Plan & Validation (Day 7 & 8)
-    itinerary: Dict[str, Any]
-    validation_errors: List[str]
-    is_valid: bool
-    retry_count: int
-
     # Human-in-the-Loop State
     requires_human_input: bool
     human_prompt_options: List[Dict[str, Any]]
