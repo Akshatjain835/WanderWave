@@ -1,0 +1,26 @@
+{
+  "name": "wanderwave-trip-planner",
+  "version": "1.0.0",
+  "description": "Agentic AI Trip Planner using MERN Stack and LangGraph JS",
+  "main": "server/src/server.js",
+  "scripts": {
+    "dev": "concurrently \"npm run server\" \"npm run client\"",
+    "server": "npm --prefix server run dev",
+    "client": "npm --prefix client run dev",
+    "install:all": "npm install && npm --prefix server install && npm --prefix client install"
+  },
+  "keywords": [
+    "agentic-ai",
+    "langgraph",
+    "mern",
+    "express",
+    "react",
+    "mongodb",
+    "trip-planner"
+  ],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
