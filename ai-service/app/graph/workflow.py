@@ -2,18 +2,21 @@ from langgraph.graph import StateGraph, START, END
 from app.graph.state import TripState
 from app.graph.nodes.requirement_agent import requirement_agent_node
 from app.graph.nodes.research_agents import research_agents_node
+from app.graph.nodes.budget_agent import budget_agent_node
 
 def build_trip_graph():
     workflow = StateGraph(TripState)
     
-    # Add Day 4 & Day 5 Nodes
+    # Add Day 4, 5, and 6 Nodes
     workflow.add_node("requirement_agent", requirement_agent_node)
     workflow.add_node("research_agents", research_agents_node)
+    workflow.add_node("budget_agent", budget_agent_node)
 
-    # Wire Day 4 & Day 5 Edges
+    # Wire Edges
     workflow.add_edge(START, "requirement_agent")
     workflow.add_edge("requirement_agent", "research_agents")
-    workflow.add_edge("research_agents", END)
+    workflow.add_edge("research_agents", "budget_agent")
+    workflow.add_edge("budget_agent", END)
 
     return workflow.compile()
 

@@ -10,15 +10,16 @@ import {
   DollarSign,
   Users,
   BrainCircuit,
-  CheckCircle2,
   AlertTriangle,
   ArrowRight,
   RefreshCw,
-  Tag,
   Sun,
   Bus,
   Map,
-  Clock,
+  Home,
+  Utensils,
+  Camera,
+  ShieldAlert,
 } from 'lucide-react';
 
 export const PlanTrip = () => {
@@ -91,6 +92,7 @@ export const PlanTrip = () => {
   const weatherForecast = analysisResult?.weatherForecast;
   const transportOptions = analysisResult?.transportOptions;
   const placesFound = analysisResult?.placesFound;
+  const budgetBreakdown = analysisResult?.budgetBreakdown;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -98,13 +100,13 @@ export const PlanTrip = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 5: Multi-Agent Research Engine
+            <BrainCircuit className="w-3.5 h-3.5" /> Day 6: Budget Allocation Agent
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Destination Research Agent (Weather, Transport, Places)
+            Budget Allocation Agent & Destination Research
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            LangGraph Nodes: Requirement Analyzer Agent ➔ Specialized Research Agents (Weather, Transport, Places).
+            LangGraph Nodes: Requirement Analyzer Agent ➔ Research Agents (Weather, Transport, Places) ➔ Budget Allocation Agent.
           </p>
         </div>
 
@@ -241,12 +243,12 @@ export const PlanTrip = () => {
               {analyzing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-cyan-200" />
-                  <span>Researching Weather, Transport & Places...</span>
+                  <span>Allocating Category Budget Caps...</span>
                 </>
               ) : (
                 <>
                   <BrainCircuit className="w-4 h-4" />
-                  <span>Run Day 5 Research Agents</span>
+                  <span>Run Day 6 Budget Agent</span>
                   <ArrowRight className="w-4 h-4" />
                 </>
               )}
@@ -275,7 +277,7 @@ export const PlanTrip = () => {
           )}
         </div>
 
-        {/* Right Column: Day 5 Research Outputs (Weather, Transport, Places) */}
+        {/* Right Column: Day 6 Budget Allocation & Day 5 Research */}
         <div className="lg:col-span-7 space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
@@ -287,12 +289,12 @@ export const PlanTrip = () => {
           {!analysisResult && !analyzing && (
             <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[420px] space-y-4">
               <div className="p-4 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
-                <Compass className="w-10 h-10 animate-pulse" />
+                <DollarSign className="w-10 h-10 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Day 5 Research Agent Ready</h3>
+                <h3 className="text-base font-bold text-white">Day 6 Budget Agent Ready</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                  Click "Run Day 5 Research Agents" or load the Placement Scenario to view dynamic weather, transport, and attractions research.
+                  Click "Run Day 6 Budget Agent" to view realistic category budget allocations (Stay, Transit, Meals, Activities, Emergency Cushion).
                 </p>
               </div>
             </div>
@@ -302,9 +304,9 @@ export const PlanTrip = () => {
             <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[420px] space-y-4">
               <RefreshCw className="w-10 h-10 text-cyan-400 animate-spin" />
               <div>
-                <h3 className="text-base font-bold text-white">Day 5 LangGraph Execution</h3>
+                <h3 className="text-base font-bold text-white">Day 6 LangGraph Node Execution</h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  1. Requirement Analyzer Agent ➔ 2. Weather, Transport & Places Research Agents (Gemini 3.6 Flash)
+                  1. Requirement Analyzer ➔ 2. Research Agents ➔ 3. Budget Allocation Agent (Gemini 3.6 Flash)
                 </p>
               </div>
             </div>
@@ -312,21 +314,86 @@ export const PlanTrip = () => {
 
           {analysisResult && !analyzing && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Weather Forecast Section */}
+              {/* Day 6 Budget Allocation Breakdown Section */}
+              {budgetBreakdown && (
+                <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-4">
+                  <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                    <h3 className="text-xs font-bold text-white flex items-center gap-2">
+                      <DollarSign className="w-4 h-4 text-emerald-400" /> Day 6: Budget Agent Allocation
+                    </h3>
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold">
+                      {budgetBreakdown.destination_cost_tier || 'Mid-range'} Cost Tier
+                    </span>
+                  </div>
+
+                  {budgetBreakdown.budget_advice && (
+                    <p className="text-xs text-cyan-300 bg-slate-950 p-2.5 rounded-2xl border border-slate-900">
+                      💡 Strategy: {budgetBreakdown.budget_advice}
+                    </p>
+                  )}
+
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 text-center space-y-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-mono flex items-center justify-center gap-1">
+                        <Home className="w-3 h-3 text-cyan-400" /> Stay (35%)
+                      </p>
+                      <p className="text-sm font-extrabold text-white">₹{budgetBreakdown.accommodation_stay?.toLocaleString()}</p>
+                    </div>
+
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 text-center space-y-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-mono flex items-center justify-center gap-1">
+                        <Bus className="w-3 h-3 text-cyan-400" /> Transit (25%)
+                      </p>
+                      <p className="text-sm font-extrabold text-white">₹{budgetBreakdown.transportation?.toLocaleString()}</p>
+                    </div>
+
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 text-center space-y-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-mono flex items-center justify-center gap-1">
+                        <Utensils className="w-3 h-3 text-cyan-400" /> Meals (20%)
+                      </p>
+                      <p className="text-sm font-extrabold text-white">₹{budgetBreakdown.food_and_meals?.toLocaleString()}</p>
+                    </div>
+
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 text-center space-y-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-mono flex items-center justify-center gap-1">
+                        <Camera className="w-3 h-3 text-cyan-400" /> Activities (15%)
+                      </p>
+                      <p className="text-sm font-extrabold text-white">₹{budgetBreakdown.activities_and_sightseeing?.toLocaleString()}</p>
+                    </div>
+
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 text-center space-y-1">
+                      <p className="text-[9px] text-slate-400 uppercase font-mono flex items-center justify-center gap-1">
+                        <ShieldAlert className="w-3 h-3 text-rose-400" /> Cushion (5%)
+                      </p>
+                      <p className="text-sm font-extrabold text-rose-300">₹{budgetBreakdown.emergency_cushion?.toLocaleString()}</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-mono">Daily Spending Cap:</span>
+                      <strong className="text-emerald-400 font-bold">₹{budgetBreakdown.per_day_limit?.toLocaleString()}/day</strong>
+                    </div>
+                    <div className="glass-card p-3 rounded-2xl border border-slate-800 flex items-center justify-between text-xs">
+                      <span className="text-slate-400 font-mono">Per Person Allocation:</span>
+                      <strong className="text-cyan-400 font-bold">₹{budgetBreakdown.per_person_limit?.toLocaleString()}/person</strong>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Day 5 Weather Forecast */}
               {weatherForecast && (
                 <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                      <Sun className="w-4 h-4 text-amber-400" /> Weather Forecast Agent Research
+                      <Sun className="w-4 h-4 text-amber-400" /> Weather Research Data
                     </h3>
                     <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 border border-amber-500/20 font-bold">
                       {weatherForecast.climate_type || 'Temperate'}
                     </span>
                   </div>
-
-                  <p className="text-xs text-slate-300">{weatherForecast.summary}</p>
-
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                     {weatherForecast.forecast_days?.map((day, idx) => (
                       <div key={idx} className="glass-card p-2.5 rounded-2xl border border-slate-800 text-center space-y-1">
                         <span className="text-[10px] text-slate-400 font-mono">Day {day.day}</span>
@@ -338,13 +405,12 @@ export const PlanTrip = () => {
                 </div>
               )}
 
-              {/* Transport Options Section */}
+              {/* Day 5 Transport Options */}
               {transportOptions && transportOptions.length > 0 && (
                 <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
                   <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                    <Bus className="w-4 h-4 text-cyan-400" /> Transport Agent Options ({startingCity} ➔ {analysisResult.destination})
+                    <Bus className="w-4 h-4 text-cyan-400" /> Transport Options ({startingCity} ➔ {analysisResult.destination})
                   </h3>
-
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {transportOptions.map((opt, idx) => (
                       <div key={idx} className="glass-card p-3.5 rounded-2xl border border-slate-800 space-y-1.5">
@@ -356,32 +422,6 @@ export const PlanTrip = () => {
                           <span>⏱️ {opt.travel_time_hours} hrs</span>
                           {opt.comfort_rating && <span>⭐ {opt.comfort_rating}</span>}
                         </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Places & Attractions Section */}
-              {placesFound && placesFound.length > 0 && (
-                <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-4">
-                  <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                    <Map className="w-4 h-4 text-emerald-400" /> Places Agent Research ({placesFound.length} Spots Found)
-                  </h3>
-
-                  <div className="space-y-3">
-                    {placesFound.map((place, idx) => (
-                      <div key={idx} className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <span className="px-2 py-0.5 rounded bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-mono font-bold">
-                              {place.best_time || 'Daytime'}
-                            </span>
-                            <h4 className="text-xs font-bold text-white">{place.name}</h4>
-                          </div>
-                          <span className="text-xs font-mono text-emerald-400 font-bold">₹{place.estimated_cost_per_person}</span>
-                        </div>
-                        <p className="text-xs text-slate-300 leading-relaxed">{place.description}</p>
                       </div>
                     ))}
                   </div>

@@ -86,6 +86,26 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     { mode: 'Private Cab / SUV Rental', roundtrip_cost_per_person: 4500, travel_time_hours: 10 },
   ];
 
+  // Day 6 Budget Breakdown
+  const stayCap = Math.round(budget * 0.35);
+  const transportCap = Math.round(budget * 0.25);
+  const mealsCap = Math.round(budget * 0.20);
+  const activitiesCap = Math.round(budget * 0.15);
+  const emergencyCap = Math.round(budget * 0.05);
+
+  const budgetBreakdown = {
+    destination_cost_tier: 'Mid-range',
+    accommodation_stay: stayCap,
+    transportation: transportCap,
+    food_and_meals: mealsCap,
+    activities_and_sightseeing: activitiesCap,
+    emergency_cushion: emergencyCap,
+    per_day_limit: Math.round(budget / duration),
+    per_person_limit: Math.round(budget / travelers),
+    total_budget: budget,
+    budget_advice: `Balanced budget allocation for ${destination} over ${duration} days.`,
+  };
+
   return {
     destination,
     startingCity,
@@ -99,6 +119,7 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     weatherForecast,
     transportOptions,
     placesFound: [],
+    budgetBreakdown,
     agentLogs: [
       {
         agent: 'Requirement Analyzer Agent',
@@ -111,6 +132,12 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
         status: 'SUCCESS',
         timestamp: new Date().toLocaleTimeString(),
         details: `Retrieved weather, transport, and places research.`,
+      },
+      {
+        agent: 'Budget Allocation Agent',
+        status: 'SUCCESS',
+        timestamp: new Date().toLocaleTimeString(),
+        details: `Allocated category budget caps for INR ${budget.toLocaleString()}.`,
       },
     ],
   };

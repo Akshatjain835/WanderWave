@@ -1,7 +1,7 @@
 from typing import TypedDict, List, Dict, Any, Optional
 
 class TripState(TypedDict, total=False):
-    # User Inputs & Derived Query
+    # User Inputs & Derived Query (Day 4)
     user_id: Optional[str]
     user_request: str
     destination: str
@@ -20,6 +20,10 @@ class TripState(TypedDict, total=False):
     places_found: List[Dict[str, Any]]
     weather_forecast: Dict[str, Any]
     transport_options: List[Dict[str, Any]]
+
+    # Budget Allocation (Day 6)
+    budget_breakdown: Dict[str, Any]
+    total_estimated_cost: float
 
     # Human-in-the-Loop State
     requires_human_input: bool

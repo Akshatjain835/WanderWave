@@ -72,6 +72,7 @@ async def analyze_trip(request: AnalyzeRequest):
                 "weatherForecast": result_state.get("weather_forecast", {}),
                 "transportOptions": result_state.get("transport_options", []),
                 "placesFound": result_state.get("places_found", []),
+                "budgetBreakdown": result_state.get("budget_breakdown", {}),
                 "agentLogs": result_state.get("agent_logs", [])
             }
         }

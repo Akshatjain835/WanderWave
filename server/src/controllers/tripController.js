@@ -64,6 +64,7 @@ export const analyzeTripRequest = async (req, res) => {
         weatherForecast: localState.weatherForecast,
         transportOptions: localState.transportOptions,
         placesFound: localState.placesFound,
+        budgetBreakdown: localState.budgetBreakdown,
         agentLogs: localState.agentLogs,
       };
     }
