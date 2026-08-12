@@ -28,7 +28,9 @@ async def requirement_agent_node(state: TripState) -> Dict[str, Any]:
             llm = ChatGoogleGenerativeAI(
                 model="gemini-3.6-flash",
                 google_api_key=api_key,
-                temperature=0.1
+                temperature=0.1,
+                max_retries=1,
+                request_timeout=12
             )
             structured_llm = llm.with_structured_output(RequirementAnalysisModel)
 

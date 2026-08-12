@@ -32,7 +32,7 @@ export const analyzeTripRequest = async (req, res) => {
         interests,
         travelStyle,
         userLongTermPreferences: userLongTermPrefs,
-      }, { timeout: 8000 });
+      }, { timeout: 120000 });
 
       if (pythonResponse.data && pythonResponse.data.data) {
         resultData = pythonResponse.data.data;

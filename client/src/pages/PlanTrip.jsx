@@ -86,7 +86,7 @@ export const PlanTrip = () => {
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Error analyzing trip request. Check backend server.');
-    } fontally {
+    } finally {
       setAnalyzing(false);
     }
   };
@@ -377,11 +377,10 @@ export const PlanTrip = () => {
                       <button
                         key={d.day_number}
                         onClick={() => setActiveDayTab(d.day_number)}
-                        className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-                          activeDayTab === d.day_number
+                        className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${activeDayTab === d.day_number
                             ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
                             : 'glass-card text-slate-400 hover:text-white border border-slate-800'
-                        }`}
+                          }`}
                       >
                         <Calendar className="w-3.5 h-3.5" /> Day {d.day_number}
                       </button>

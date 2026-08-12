@@ -49,7 +49,9 @@ async def research_agents_node(state: Dict[str, Any]) -> Dict[str, Any]:
             llm = ChatGoogleGenerativeAI(
                 model="gemini-3.6-flash",
                 google_api_key=api_key,
-                temperature=0.3
+                temperature=0.3,
+                max_retries=1,
+                request_timeout=12
             )
             structured_llm = llm.with_structured_output(DestinationResearchModel)
 

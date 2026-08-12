@@ -29,7 +29,9 @@ async def budget_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
         try:
             llm = ChatGoogleGenerativeAI(
                 model="gemini-3.6-flash",
-                google_api_key=api_key
+                google_api_key=api_key,
+                max_retries=1,
+                request_timeout=12
             )
             structured_llm = llm.with_structured_output(BudgetAllocationModel)
 

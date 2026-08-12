@@ -69,21 +69,21 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
   // Weather forecast
   const weatherForecast = {
     destination,
-    climate_type: destination.toLowerCase().includes('manali') ? 'Mountainous / Cold' : 'Temperate',
+    climate_type: destination.toLowerCase().includes('manali') || destination.toLowerCase().includes('ladakh') ? 'Mountainous / Cold' : 'Temperate',
     forecast_days: Array.from({ length: duration }, (_, i) => ({
       day: i + 1,
       condition: 'Sunny & Clear',
-      temp_max_c: 18,
-      temp_min_c: 11,
-      rain_probability_pct: 15,
+      temp_max_c: 24,
+      temp_min_c: 16,
+      rain_probability_pct: 10,
       suitable_for_outdoors: true,
     })),
   };
 
   // Transport options
   const transportOptions = [
-    { mode: 'Volvo AC Sleeper Bus', roundtrip_cost_per_person: 2400, travel_time_hours: 12 },
-    { mode: 'Private Cab / SUV Rental', roundtrip_cost_per_person: 4500, travel_time_hours: 10 },
+    { mode: `Express Transit to ${destination}`, roundtrip_cost_per_person: Math.round(budget * 0.12), travel_time_hours: 6 },
+    { mode: `Private Cab / SUV Rental in ${destination}`, roundtrip_cost_per_person: Math.round(budget * 0.20), travel_time_hours: 5 },
   ];
 
   // Day 6 Budget Breakdown
@@ -106,35 +106,42 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     budget_advice: `Balanced budget allocation for ${destination} over ${duration} days.`,
   };
 
-  // Day 7 Itinerary Generation
+  // Day 7 Dynamic Itinerary Generation (100% Destination Dynamic)
   const days = Array.from({ length: duration }, (_, i) => {
     const dNum = i + 1;
+    const isFirst = dNum === 1;
+    const isLast = dNum === duration;
+
     return {
       day_number: dNum,
-      title: dNum === 1 ? `Arrival in ${destination}` : dNum === 2 ? 'Mountain Adventure Excursion' : `Explore ${destination} Hidden Spots & Culture`,
-      weather_snippet: 'Sunny & Clear | 18°C',
+      title: isFirst ? `Arrival & Orientation in ${destination}` : isLast ? `Farewell & Departure from ${destination}` : `Day ${dNum}: ${destination} ${interests[0] || 'Highlights'} Exploration`,
+      weather_snippet: 'Sunny & Clear | 24°C',
       morning: {
         time: '09:00 AM - 12:30 PM',
-        activity: dNum === 1 ? `Check-in & Breakfast in ${destination}` : 'Solang Valley Ropeway & Cable Car',
-        location: `${destination} Center`,
-        estimated_cost_inr: 800,
-        tips: 'Carry warm layer and camera.',
+        activity: isFirst
+          ? `Arrival in ${destination}, Hotel Check-in & Welcome Breakfast`
+          : `Morning Sightseeing at Top ${destination} Landmarks & Scenic Spots`,
+        location: `${destination} City Center`,
+        estimated_cost_inr: Math.round((budget * 0.15) / duration),
+        tips: isFirst ? 'Check in early and freshen up.' : `Start early to experience ${destination} before afternoon crowds.`,
       },
       afternoon: {
         time: '01:30 PM - 04:30 PM',
-        activity: 'Hadimba Wooden Pagoda Temple & Pine Forest Walk',
-        location: 'Dhungri Van Vihar',
-        estimated_cost_inr: 300,
-        tips: 'Scenic nature trail walk.',
+        activity: `Authentic ${destination} Local Cuisine Lunch & Cultural Heritage Walk`,
+        location: `${destination} Old Town Quarter`,
+        estimated_cost_inr: Math.round((budget * 0.10) / duration),
+        tips: `Try traditional local dishes at popular eateries in ${destination}.`,
       },
       evening: {
         time: '06:00 PM - 09:00 PM',
-        activity: 'Mall Road Local Market & Warm Dinner at Riverside Cafe',
-        location: 'Old Market',
-        estimated_cost_inr: 700,
-        tips: 'Try local specialties and momos.',
+        activity: isLast
+          ? `Souvenir Shopping & Final Dinner in ${destination}`
+          : `Sunset Point View & Evening Stroll at ${destination} Local Market`,
+        location: `${destination} Main Promenade`,
+        estimated_cost_inr: Math.round((budget * 0.10) / duration),
+        tips: `Enjoy the vibrant evening street lights and atmosphere of ${destination}.`,
       },
-      estimated_day_cost_inr: 1800,
+      estimated_day_cost_inr: Math.round((budget * 0.35) / duration),
     };
   });
 
@@ -187,7 +194,7 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
         agent: 'Itinerary Planner Agent',
         status: 'SUCCESS',
         timestamp: new Date().toLocaleTimeString(),
-        details: `Synthesized ${duration}-day structured itinerary.`,
+        details: `Synthesized ${duration}-day structured itinerary for ${destination}.`,
       },
     ],
   };
