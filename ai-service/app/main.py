@@ -34,6 +34,15 @@ class AnalyzeRequest(BaseModel):
     travelStyle: Optional[str] = "Adventure"
     userLongTermPreferences: Optional[Dict[str, Any]] = None
 
+class ResumeRequest(BaseModel):
+    user_decision: str
+    destination: Optional[str] = None
+    budget: Optional[float] = None
+    duration: Optional[int] = 5
+    travelers: Optional[int] = 2
+    startingCity: Optional[str] = "Delhi"
+    travelStyle: Optional[str] = "Adventure"
+
 @app.get("/health")
 def health_check():
     return {
@@ -58,7 +67,7 @@ async def analyze_trip(request: AnalyzeRequest):
 
         return {
             "success": True,
-            "message": "Trip requirement analyzed and researched by Python LangGraph Agents 🧠",
+            "message": "Trip requirement analyzed and planned by Python LangGraph Agents 🧠",
             "data": {
                 "destination": result_state.get("destination"),
                 "startingCity": result_state.get("starting_city"),
@@ -68,6 +77,9 @@ async def analyze_trip(request: AnalyzeRequest):
                 "interests": result_state.get("interests"),
                 "travelStyle": result_state.get("travel_style"),
                 "missingFields": result_state.get("missing_fields", []),
+                "requiresHumanInput": result_state.get("requires_human_input", False),
+                "humanPromptOptions": result_state.get("human_prompt_options", []),
+                "clarificationPrompt": result_state.get("clarification_prompt", ""),
                 "userLongTermPreferences": result_state.get("user_long_term_preferences", {}),
                 "weatherForecast": result_state.get("weather_forecast", {}),
                 "transportOptions": result_state.get("transport_options", []),
@@ -79,6 +91,43 @@ async def analyze_trip(request: AnalyzeRequest):
         }
     except Exception as e:
         print("[Python AI-Service Error]", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/graph/resume")
+async def resume_trip(request: ResumeRequest):
+    try:
+        dest = request.destination or request.user_decision or "Goa"
+        b_cap = request.budget or 30000.0
+        dur = request.duration or 5
+        t_count = request.travelers or 2
+        orig = request.startingCity or "Delhi"
+        style = request.travelStyle or "Adventure"
+
+        resumed_prompt = f"Plan a {dur} day trip to {dest} from {orig} under {b_cap} for {t_count} people with {style} style"
+        result_state = await run_requirement_analysis(resumed_prompt, {"travelStyle": style}, requires_hitl=False)
+
+        return {
+            "success": True,
+            "message": f"Graph execution resumed with human decision: '{request.user_decision}' 🚀",
+            "data": {
+                "destination": result_state.get("destination"),
+                "startingCity": result_state.get("starting_city"),
+                "duration": result_state.get("duration"),
+                "budget": result_state.get("budget"),
+                "travelers": result_state.get("travelers"),
+                "interests": result_state.get("interests"),
+                "travelStyle": result_state.get("travel_style"),
+                "requiresHumanInput": False,
+                "weatherForecast": result_state.get("weather_forecast", {}),
+                "transportOptions": result_state.get("transport_options", []),
+                "placesFound": result_state.get("places_found", []),
+                "budgetBreakdown": result_state.get("budget_breakdown", {}),
+                "itinerary": result_state.get("itinerary", {}),
+                "agentLogs": result_state.get("agent_logs", [])
+            }
+        }
+    except Exception as e:
+        print("[Python AI-Service Resume Error]", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

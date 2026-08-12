@@ -20,6 +20,8 @@ import {
   Camera,
   ShieldAlert,
   Clock,
+  HelpCircle,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const PlanTrip = () => {
@@ -35,6 +37,7 @@ export const PlanTrip = () => {
   const [travelStyle, setTravelStyle] = useState(user?.preferences?.travelStyle || 'Adventure');
 
   const [analyzing, setAnalyzing] = useState(false);
+  const [resuming, setResuming] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeDayTab, setActiveDayTab] = useState(1);
@@ -91,10 +94,45 @@ export const PlanTrip = () => {
     }
   };
 
+  // Day 8 HITL Resume Handler
+  const handleSelectOption = async (option) => {
+    setResuming(true);
+    setError(null);
+
+    const chosenDest = option.destination || destination || 'Goa';
+    const chosenBudget = option.budget || budget || 30000;
+    const chosenDuration = option.duration || duration || 5;
+
+    if (option.destination) setDestination(option.destination);
+    if (option.budget) setBudget(option.budget);
+    if (option.duration) setDuration(option.duration);
+
+    try {
+      const response = await api.post('/trips/resume', {
+        user_decision: option.label,
+        destination: chosenDest,
+        budget: Number(chosenBudget),
+        duration: Number(chosenDuration),
+        travelers: Number(travelers),
+        startingCity,
+        travelStyle: option.travelStyle || travelStyle,
+      });
+
+      if (response.data.success) {
+        setAnalysisResult(response.data.data);
+        setActiveDayTab(1);
+      } else {
+        setError(response.data.message || 'Failed to resume graph execution.');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Error resuming graph with human decision.');
+    } finally {
+      setResuming(false);
+    }
+  };
+
   const itinerary = analysisResult?.itinerary;
   const budgetBreakdown = analysisResult?.budgetBreakdown;
-  const weatherForecast = analysisResult?.weatherForecast;
-  const transportOptions = analysisResult?.transportOptions;
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -102,13 +140,13 @@ export const PlanTrip = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 7: Itinerary Planner Agent
+            <BrainCircuit className="w-3.5 h-3.5" /> Day 8: Human-in-the-Loop (HITL) Interruption
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Synthesized Day-by-Day Itinerary Engine
+            Interactive Agentic Trip Planner Engine
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            LangGraph Nodes: Requirement Analyzer ➔ Research Agents ➔ Budget Allocator ➔ Itinerary Planner Agent.
+            LangGraph Pipeline: Requirement Analyzer ➔ HITL Router ➔ Research Agents ➔ Budget Allocator ➔ Itinerary Planner.
           </p>
         </div>
 
@@ -239,13 +277,13 @@ export const PlanTrip = () => {
 
             <button
               type="submit"
-              disabled={analyzing}
+              disabled={analyzing || resuming}
               className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
             >
               {analyzing ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin text-cyan-200" />
-                  <span>Generating Day-by-Day Itinerary...</span>
+                  <span>Analyzing & Planning...</span>
                 </>
               ) : (
                 <>
@@ -262,14 +300,16 @@ export const PlanTrip = () => {
             <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
               <p className="text-[11px] font-mono uppercase text-slate-400 flex items-center justify-between">
                 <span>LangGraph Execution Trace</span>
-                <span className="text-cyan-400 font-bold">{analysisResult.agentLogs.length} Nodes Completed</span>
+                <span className="text-cyan-400 font-bold">{analysisResult.agentLogs.length} Nodes Executed</span>
               </p>
               <div className="bg-slate-950 p-3 rounded-2xl border border-slate-900 text-[11px] font-mono space-y-2 max-h-48 overflow-y-auto">
                 {analysisResult.agentLogs.map((log, idx) => (
                   <div key={idx} className="border-b border-slate-900/60 pb-1.5 last:border-0 last:pb-0">
                     <div className="flex items-center justify-between text-cyan-400 font-bold">
                       <span>[{log.timestamp}] {log.agent}</span>
-                      <span className="text-emerald-400 text-[9px] uppercase font-mono">{log.status}</span>
+                      <span className={`text-[9px] uppercase font-mono ${log.status === 'PAUSED_FOR_HUMAN_INPUT' ? 'text-amber-400' : 'text-emerald-400'}`}>
+                        {log.status}
+                      </span>
                     </div>
                     <p className="text-slate-400 text-[10px] mt-0.5">{log.details}</p>
                   </div>
@@ -279,12 +319,58 @@ export const PlanTrip = () => {
           )}
         </div>
 
-        {/* Right Column: Day 7 Day-by-Day Itinerary */}
+        {/* Right Column: Day 8 HITL Interruption Card or Day 7 Itinerary */}
         <div className="lg:col-span-7 space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
+            </div>
+          )}
+
+          {/* Day 8 Human-in-the-Loop Decision Card */}
+          {analysisResult?.requiresHumanInput && (
+            <div className="glass-panel p-6 rounded-3xl border border-amber-500/30 bg-amber-500/5 space-y-5 animate-in fade-in duration-200">
+              <div className="flex items-center gap-3 border-b border-amber-500/20 pb-4">
+                <div className="p-3 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30">
+                  <HelpCircle className="w-6 h-6 animate-pulse" />
+                </div>
+                <div>
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold uppercase mb-1">
+                    ⏸️ LangGraph Paused • Human-in-the-Loop Interruption
+                  </div>
+                  <h3 className="text-base font-bold text-white">Clarification Needed to Continue</h3>
+                  <p className="text-xs text-amber-200/90 mt-0.5">
+                    {analysisResult.clarificationPrompt || 'Please select an option below to resume graph execution:'}
+                  </p>
+                </div>
+              </div>
+
+              {/* Interactive Choice Option Buttons */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {analysisResult.humanPromptOptions?.map((opt) => (
+                  <button
+                    key={opt.id}
+                    onClick={() => handleSelectOption(opt)}
+                    disabled={resuming}
+                    className="p-4 rounded-2xl glass-card hover:border-amber-400/50 hover:bg-amber-500/10 text-left transition-all group flex items-center justify-between border border-amber-500/20"
+                  >
+                    <div>
+                      <h4 className="text-xs font-bold text-white group-hover:text-amber-300">{opt.label}</h4>
+                      {opt.destination && (
+                        <p className="text-[10px] text-slate-400 font-mono mt-1">
+                          {opt.destination} • {opt.duration} Days • ₹{opt.budget?.toLocaleString()}
+                        </p>
+                      )}
+                    </div>
+                    {resuming ? (
+                      <RefreshCw className="w-4 h-4 text-amber-400 animate-spin flex-shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-amber-400/60 group-hover:text-amber-400 flex-shrink-0" />
+                    )}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
 
@@ -294,29 +380,31 @@ export const PlanTrip = () => {
                 <Compass className="w-10 h-10 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Day 7 Planner Agent Ready</h3>
+                <h3 className="text-base font-bold text-white">Agentic AI Trip Planner Ready</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                  Click "Generate Day-by-Day Plan" or load the Placement Scenario to view your synthesized itinerary.
+                  Enter your trip prompt or click "Generate Day-by-Day Plan" to run the LangGraph Multi-Agent pipeline.
                 </p>
               </div>
             </div>
           )}
 
-          {analyzing && (
+          {(analyzing || resuming) && (
             <div className="glass-panel p-8 rounded-3xl border border-slate-800 text-center flex flex-col items-center justify-center min-h-[420px] space-y-4">
               <RefreshCw className="w-10 h-10 text-cyan-400 animate-spin" />
               <div>
-                <h3 className="text-base font-bold text-white">Day 7 LangGraph Node Execution</h3>
+                <h3 className="text-base font-bold text-white">
+                  {resuming ? 'Resuming LangGraph Execution...' : 'Executing Multi-Agent Pipeline...'}
+                </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  1. Requirement Analyzer ➔ 2. Research Agents ➔ 3. Budget Allocator ➔ 4. Itinerary Planner Agent (Gemini 3.6 Flash)
+                  Analyzer ➔ HITL Router ➔ Research Agents ➔ Budget Allocator ➔ Itinerary Planner
                 </p>
               </div>
             </div>
           )}
 
-          {analysisResult && !analyzing && (
+          {analysisResult && !analysisResult.requiresHumanInput && !analyzing && !resuming && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Day 6 Budget Allocation Breakdown */}
+              {/* Budget Allocation Breakdown */}
               {budgetBreakdown && (
                 <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
                   <div className="flex items-center justify-between">
@@ -377,10 +465,11 @@ export const PlanTrip = () => {
                       <button
                         key={d.day_number}
                         onClick={() => setActiveDayTab(d.day_number)}
-                        className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${activeDayTab === d.day_number
+                        className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
+                          activeDayTab === d.day_number
                             ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
                             : 'glass-card text-slate-400 hover:text-white border border-slate-800'
-                          }`}
+                        }`}
                       >
                         <Calendar className="w-3.5 h-3.5" /> Day {d.day_number}
                       </button>

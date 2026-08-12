@@ -60,6 +60,9 @@ export const analyzeTripRequest = async (req, res) => {
         interests: localState.interests,
         travelStyle: localState.travelStyle,
         missingFields: localState.missingFields,
+        requiresHumanInput: localState.requiresHumanInput || false,
+        humanPromptOptions: localState.humanPromptOptions || [],
+        clarificationPrompt: localState.clarificationPrompt || '',
         userLongTermPreferences: localState.userLongTermPreferences,
         weatherForecast: localState.weatherForecast,
         transportOptions: localState.transportOptions,
@@ -80,6 +83,77 @@ export const analyzeTripRequest = async (req, res) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Error analyzing trip request',
+    });
+  }
+};
+
+// @desc    Resume interrupted trip request with Human-in-the-Loop decision (Day 8)
+// @route   POST /api/trips/resume
+// @access  Private
+export const resumeTripRequest = async (req, res) => {
+  try {
+    const { user_decision, destination, budget, duration, travelers, startingCity, travelStyle } = req.body;
+
+    let resultData = null;
+
+    try {
+      const pythonResponse = await axios.post('http://localhost:8000/api/graph/resume', {
+        user_decision,
+        destination,
+        budget,
+        duration,
+        travelers,
+        startingCity,
+        travelStyle,
+      }, { timeout: 120000 });
+
+      if (pythonResponse.data && pythonResponse.data.data) {
+        resultData = pythonResponse.data.data;
+      }
+    } catch (pyErr) {
+      console.warn('[TripController Notice] Python AI-Service offline, executing local resume fallback:', pyErr.message);
+    }
+
+    if (!resultData) {
+      const resumedPrompt = `Plan a ${duration || 5} day trip to ${destination || user_decision || 'Goa'} from ${startingCity || 'Delhi'} under ${budget || 30000} for ${travelers || 2} people`;
+      const localState = await runLocalRequirementAnalysis(resumedPrompt, {}, {
+        destination: destination || user_decision,
+        budget: Number(budget || 30000),
+        duration: Number(duration || 5),
+        travelers: Number(travelers || 2),
+        startingCity: startingCity || 'Delhi',
+        travelStyle: travelStyle || 'Adventure',
+      });
+
+      resultData = {
+        destination: localState.destination,
+        startingCity: localState.startingCity,
+        duration: localState.duration,
+        budget: localState.budget,
+        travelers: localState.travelers,
+        interests: localState.interests,
+        travelStyle: localState.travelStyle,
+        requiresHumanInput: false,
+        userLongTermPreferences: localState.userLongTermPreferences,
+        weatherForecast: localState.weatherForecast,
+        transportOptions: localState.transportOptions,
+        placesFound: localState.placesFound,
+        budgetBreakdown: localState.budgetBreakdown,
+        itinerary: localState.itinerary,
+        agentLogs: localState.agentLogs,
+      };
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Graph execution resumed with human decision 🚀',
+      data: resultData,
+    });
+  } catch (error) {
+    console.error('[Resume Trip Error]', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error resuming trip request',
     });
   }
 };
