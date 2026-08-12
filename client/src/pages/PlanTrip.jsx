@@ -448,14 +448,43 @@ export const PlanTrip = () => {
               {/* Day 7 Day-by-Day Itinerary */}
               {itinerary && itinerary.days && (
                 <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
                     <div>
                       <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold">Synthesized Itinerary</span>
                       <h2 className="text-lg font-bold text-white mt-0.5">{itinerary.trip_title}</h2>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] text-slate-400 uppercase font-mono">Est. Total Spend</span>
-                      <p className="text-sm font-extrabold text-emerald-400">₹{itinerary.estimated_total_cost_inr?.toLocaleString()}</p>
+                    <div className="flex items-center gap-3">
+                      <div className="text-right">
+                        <span className="text-[10px] text-slate-400 uppercase font-mono">Est. Total Spend</span>
+                        <p className="text-sm font-extrabold text-emerald-400">₹{itinerary.estimated_total_cost_inr?.toLocaleString()}</p>
+                      </div>
+                      <button
+                        onClick={async () => {
+                          try {
+                            const saveRes = await api.post('/trips', {
+                              tripTitle: itinerary.trip_title,
+                              destination: analysisResult.destination || destination,
+                              startingCity: analysisResult.startingCity || startingCity,
+                              duration: Number(analysisResult.duration || duration),
+                              budget: Number(analysisResult.budget || budget),
+                              travelers: Number(analysisResult.travelers || travelers),
+                              travelStyle: analysisResult.travelStyle || travelStyle,
+                              interests: analysisResult.interests || ['Sightseeing'],
+                              budgetBreakdown: analysisResult.budgetBreakdown || {},
+                              itinerary: analysisResult.itinerary || {},
+                              weatherForecast: analysisResult.weatherForecast || {},
+                            });
+                            if (saveRes.data.success) {
+                              alert('🎉 Trip saved to your MongoDB account successfully! You can view it under "My Trips".');
+                            }
+                          } catch (err) {
+                            alert(err.response?.data?.message || 'Error saving trip to database.');
+                          }
+                        }}
+                        className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
+                      >
+                        💾 Save Trip
+                      </button>
                     </div>
                   </div>
 

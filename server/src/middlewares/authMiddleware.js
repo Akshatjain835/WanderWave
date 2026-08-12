@@ -1,6 +1,8 @@
 import { verifyToken } from '../utils/jwtHandler.js';
 import User from '../models/User.js';
 
+const MOCK_USER_ID = '650000000000000000000001';
+
 export const protect = async (req, res, next) => {
   let token;
 
@@ -30,13 +32,23 @@ export const protect = async (req, res, next) => {
     const user = await User.findById(decoded.id).select('-password');
     if (!user) {
       // In-memory / Mock user fallback if DB user not found
-      req.user = { id: decoded.id, name: 'Wanderer User', email: 'user@wanderwave.ai' };
+      req.user = {
+        _id: decoded.id && decoded.id.length === 24 ? decoded.id : MOCK_USER_ID,
+        id: decoded.id && decoded.id.length === 24 ? decoded.id : MOCK_USER_ID,
+        name: 'Wanderer User',
+        email: 'user@wanderwave.ai',
+      };
     } else {
       req.user = user;
     }
     next();
   } catch (error) {
-    req.user = { id: decoded.id, name: 'Wanderer User', email: 'user@wanderwave.ai' };
+    req.user = {
+      _id: decoded.id && decoded.id.length === 24 ? decoded.id : MOCK_USER_ID,
+      id: decoded.id && decoded.id.length === 24 ? decoded.id : MOCK_USER_ID,
+      name: 'Wanderer User',
+      email: 'user@wanderwave.ai',
+    };
     next();
   }
 };

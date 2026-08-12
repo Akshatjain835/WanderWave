@@ -8,6 +8,7 @@ import { Signup } from './pages/Signup';
 import { Dashboard } from './pages/Dashboard';
 import { ProfilePreferences } from './pages/ProfilePreferences';
 import { PlanTrip } from './pages/PlanTrip';
+import { MyTrips } from './pages/MyTrips';
 
 // WanderWave MERN + LangGraph Router
 export default function App() {
@@ -43,10 +44,15 @@ export default function App() {
                 path="/trips"
                 element={
                   <ProtectedRoute>
-                    <div className="max-w-7xl mx-auto px-4 py-12 text-center">
-                      <h1 className="text-2xl font-bold text-white mb-2">Saved Trips Gallery</h1>
-                      <p className="text-sm text-slate-400">Scheduled for Day 13 UI Integration</p>
-                    </div>
+                    <MyTrips />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/my-trips"
+                element={
+                  <ProtectedRoute>
+                    <MyTrips />
                   </ProtectedRoute>
                 }
               />
