@@ -65,6 +65,7 @@ export const analyzeTripRequest = async (req, res) => {
         transportOptions: localState.transportOptions,
         placesFound: localState.placesFound,
         budgetBreakdown: localState.budgetBreakdown,
+        itinerary: localState.itinerary,
         agentLogs: localState.agentLogs,
       };
     }

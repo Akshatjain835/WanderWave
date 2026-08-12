@@ -25,6 +25,9 @@ class TripState(TypedDict, total=False):
     budget_breakdown: Dict[str, Any]
     total_estimated_cost: float
 
+    # Generated Day-by-Day Itinerary (Day 7)
+    itinerary: Dict[str, Any]
+
     # Human-in-the-Loop State
     requires_human_input: bool
     human_prompt_options: List[Dict[str, Any]]

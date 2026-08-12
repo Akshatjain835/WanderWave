@@ -106,6 +106,49 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     budget_advice: `Balanced budget allocation for ${destination} over ${duration} days.`,
   };
 
+  // Day 7 Itinerary Generation
+  const days = Array.from({ length: duration }, (_, i) => {
+    const dNum = i + 1;
+    return {
+      day_number: dNum,
+      title: dNum === 1 ? `Arrival in ${destination}` : dNum === 2 ? 'Mountain Adventure Excursion' : `Explore ${destination} Hidden Spots & Culture`,
+      weather_snippet: 'Sunny & Clear | 18°C',
+      morning: {
+        time: '09:00 AM - 12:30 PM',
+        activity: dNum === 1 ? `Check-in & Breakfast in ${destination}` : 'Solang Valley Ropeway & Cable Car',
+        location: `${destination} Center`,
+        estimated_cost_inr: 800,
+        tips: 'Carry warm layer and camera.',
+      },
+      afternoon: {
+        time: '01:30 PM - 04:30 PM',
+        activity: 'Hadimba Wooden Pagoda Temple & Pine Forest Walk',
+        location: 'Dhungri Van Vihar',
+        estimated_cost_inr: 300,
+        tips: 'Scenic nature trail walk.',
+      },
+      evening: {
+        time: '06:00 PM - 09:00 PM',
+        activity: 'Mall Road Local Market & Warm Dinner at Riverside Cafe',
+        location: 'Old Market',
+        estimated_cost_inr: 700,
+        tips: 'Try local specialties and momos.',
+      },
+      estimated_day_cost_inr: 1800,
+    };
+  });
+
+  const itinerary = {
+    trip_title: `${duration}-Day ${travelStyle} Trip to ${destination} from ${startingCity}`,
+    destination,
+    starting_city: startingCity,
+    duration_days: duration,
+    travelers_count: travelers,
+    total_budget_cap_inr: budget,
+    estimated_total_cost_inr: budget * 0.9,
+    days,
+  };
+
   return {
     destination,
     startingCity,
@@ -120,6 +163,7 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     transportOptions,
     placesFound: [],
     budgetBreakdown,
+    itinerary,
     agentLogs: [
       {
         agent: 'Requirement Analyzer Agent',
@@ -138,6 +182,12 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
         status: 'SUCCESS',
         timestamp: new Date().toLocaleTimeString(),
         details: `Allocated category budget caps for INR ${budget.toLocaleString()}.`,
+      },
+      {
+        agent: 'Itinerary Planner Agent',
+        status: 'SUCCESS',
+        timestamp: new Date().toLocaleTimeString(),
+        details: `Synthesized ${duration}-day structured itinerary.`,
       },
     ],
   };

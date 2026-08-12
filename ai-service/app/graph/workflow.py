@@ -3,20 +3,23 @@ from app.graph.state import TripState
 from app.graph.nodes.requirement_agent import requirement_agent_node
 from app.graph.nodes.research_agents import research_agents_node
 from app.graph.nodes.budget_agent import budget_agent_node
+from app.graph.nodes.planner_agent import planner_agent_node
 
 def build_trip_graph():
     workflow = StateGraph(TripState)
     
-    # Add Day 4, 5, and 6 Nodes
+    # Add Day 4, 5, 6, and 7 Nodes
     workflow.add_node("requirement_agent", requirement_agent_node)
     workflow.add_node("research_agents", research_agents_node)
     workflow.add_node("budget_agent", budget_agent_node)
+    workflow.add_node("planner_agent", planner_agent_node)
 
     # Wire Edges
     workflow.add_edge(START, "requirement_agent")
     workflow.add_edge("requirement_agent", "research_agents")
     workflow.add_edge("research_agents", "budget_agent")
-    workflow.add_edge("budget_agent", END)
+    workflow.add_edge("budget_agent", "planner_agent")
+    workflow.add_edge("planner_agent", END)
 
     return workflow.compile()
 

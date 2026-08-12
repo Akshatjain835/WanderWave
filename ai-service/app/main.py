@@ -73,6 +73,7 @@ async def analyze_trip(request: AnalyzeRequest):
                 "transportOptions": result_state.get("transport_options", []),
                 "placesFound": result_state.get("places_found", []),
                 "budgetBreakdown": result_state.get("budget_breakdown", {}),
+                "itinerary": result_state.get("itinerary", {}),
                 "agentLogs": result_state.get("agent_logs", [])
             }
         }
