@@ -1,4 +1,5 @@
 from langgraph.graph import StateGraph, START, END
+from langgraph.checkpoint.memory import MemorySaver
 from app.graph.state import TripState
 from app.graph.nodes.requirement_agent import requirement_agent_node
 from app.graph.nodes.research_agents import research_agents_node
@@ -7,9 +8,12 @@ from app.graph.nodes.planner_agent import planner_agent_node
 from app.graph.nodes.hitl_agent import human_clarification_node
 from app.graph.nodes.validator_agent import validator_agent_node
 
+# Day 11 Checkpointer for State Persistence
+memory_checkpointer = MemorySaver()
+
 def route_after_requirement(state: TripState) -> str:
     """
-    Day 8 Conditional Router:
+    Day 8/11 Conditional Router:
     If destination is missing or requires_human_input flag is True, pause and route to Human-in-the-Loop clarification node.
     """
     destination = state.get("destination", "")
@@ -48,7 +52,7 @@ def build_trip_graph():
     # Wire Edges
     workflow.add_edge(START, "requirement_agent")
     
-    # Conditional edge after Requirement Analysis (Day 8 HITL router)
+    # Conditional edge after Requirement Analysis
     workflow.add_conditional_edges(
         "requirement_agent",
         route_after_requirement,
@@ -63,7 +67,7 @@ def build_trip_graph():
     workflow.add_edge("budget_agent", "planner_agent")
     workflow.add_edge("planner_agent", "validator_agent")
 
-    # Day 10 Conditional edge after Validator (Cyclic Re-Planning Loop)
+    # Conditional edge after Validator (Cyclic Re-Planning Loop)
     workflow.add_conditional_edges(
         "validator_agent",
         route_after_validation,
@@ -74,16 +78,18 @@ def build_trip_graph():
         }
     )
 
-    return workflow.compile()
+    # Day 11: Compile with MemorySaver Checkpointer
+    return workflow.compile(checkpointer=memory_checkpointer)
 
 trip_graph_app = build_trip_graph()
 
-async def run_requirement_analysis(user_request: str, user_long_term_preferences: dict = None, requires_hitl: bool = False):
+async def run_requirement_analysis(user_request: str, user_long_term_preferences: dict = None, requires_hitl: bool = False, thread_id: str = "default_session"):
     initial_state = {
         "user_request": user_request,
         "user_long_term_preferences": user_long_term_preferences or {},
         "requires_human_input": requires_hitl,
         "retry_count": 0
     }
-    final_state = await trip_graph_app.ainvoke(initial_state)
+    config = {"configurable": {"thread_id": thread_id}}
+    final_state = await trip_graph_app.ainvoke(initial_state, config=config)
     return final_state

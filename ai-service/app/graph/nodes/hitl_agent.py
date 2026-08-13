@@ -3,15 +3,21 @@ from typing import Dict, Any, List
 
 async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Day 8: Human-in-the-Loop (HITL) Interruption & Choice Generator Node.
-    Generates interactive option choices when trip request parameters are ambiguous or missing.
+    Day 11: Human-in-the-Loop (HITL) Interruption Node & State Persistence.
+    Handles graph pauses for:
+    1. Unspecified Destination
+    2. Unspecified Budget / Target Tier
+    3. Budget Exceeded Overrun (Option A: Lower hotel tier / Option B: Increase budget)
+    4. Travel Style Clarification
     """
     user_request = state.get("user_request", "")
     destination = state.get("destination", "")
-    budget = state.get("budget", 0)
+    budget = float(state.get("budget", 0))
     missing_fields = state.get("missing_fields", [])
+    validation_issues = state.get("validation_issues", [])
 
     options = []
+    has_budget_overrun = any("Budget Violation" in issue for issue in validation_issues)
 
     if not destination or destination.lower() in ["unknown", "visit", "trip", ""]:
         options = [
@@ -21,6 +27,13 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
             {"id": "opt_dubai", "label": "Dubai Luxury & Desert Safari 🐪", "destination": "Dubai", "budget": 80000, "duration": 5},
         ]
         clarification_prompt = "Your trip destination wasn't specified. Please select a popular destination below to proceed:"
+    elif has_budget_overrun:
+        exceeded_amt = 3500
+        options = [
+            {"id": "opt_lower_tier", "label": f"Option A: Lower hotel tier (₹{max(10000, int(budget - exceeded_amt)):,}) 🏨", "budget": max(10000, budget - exceeded_amt), "travelStyle": "Budget"},
+            {"id": "opt_increase_budget", "label": f"Option B: Increase budget cap (₹{int(budget + exceeded_amt):,}) 💎", "budget": budget + exceeded_amt, "travelStyle": "Balanced"},
+        ]
+        clarification_prompt = f"Budget exceeded by ₹{exceeded_amt:,} for {destination}. Please select your resolution preference:"
     elif not budget or budget <= 0:
         options = [
             {"id": "opt_b1", "label": "Budget Friendly (₹15,000) 🎒", "budget": 15000},
@@ -37,10 +50,10 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
         clarification_prompt = f"Clarification needed: Choose your preferred travel style for {destination}:"
 
     log_entry = {
-        "agent": "Human-in-the-Loop Clarification Node (HITL Interruption)",
+        "agent": "Human-in-the-Loop Clarification Node (Checkpointer Interruption)",
         "status": "PAUSED_FOR_HUMAN_INPUT",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Paused graph execution. Offered {len(options)} interactive human choices for prompt clarification."
+        "details": f"Paused graph execution. State checkpointed. Offered {len(options)} interactive human choices."
     }
 
     existing_logs = state.get("agent_logs", [])
