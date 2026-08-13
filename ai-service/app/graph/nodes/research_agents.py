@@ -3,6 +3,7 @@ import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
 from langchain_google_genai import ChatGoogleGenerativeAI
+from app.rag.retriever import retrieve_hyperlocal_knowledge
 
 class DailyWeatherModel(BaseModel):
     day: int = Field(description="Day index starting at 1")
@@ -44,6 +45,9 @@ async def research_agents_node(state: Dict[str, Any]) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY", "")
     research_output = None
 
+    # Day 12: Query Qdrant Cloud Vector Database for Hyper-local RAG Guidebooks
+    rag_tips = retrieve_hyperlocal_knowledge(destination, ", ".join(interests))
+
     if api_key:
         try:
             llm = ChatGoogleGenerativeAI(
@@ -66,18 +70,18 @@ Trip Parameters:
 - Travelers: {travelers} People
 - User Interests: {', '.join(interests)}
 - Travel Style: {travel_style}
+- RAG Qdrant Vector DB Hyper-local Hidden Spots: {[t['title'] + ': ' + t['content'] for t in rag_tips]}
 
 Instructions:
 1. Provide a realistic weather forecast for {duration} days in {destination}.
 2. Provide 2-3 realistic transit modes (flight, bus, train, cab) from {starting_city} to {destination} with estimated per-person roundtrip cost in INR.
-3. Recommend 6-8 authentic, real places/attractions in {destination} tailored to interests ({', '.join(interests)}) categorized by Morning, Afternoon, or Evening.
+3. Recommend 6-8 authentic, real places/attractions in {destination} including the RAG hidden spots.
             """
             research_output = await structured_llm.ainvoke(prompt)
         except Exception as e:
             print(f"[ResearchAgents Warning] Gemini LLM call error: {e}. Utilizing fallback tool research.")
 
     if not research_output:
-        # Fallback tool calls
         from app.graph.tools.weather_tool import get_weather_forecast
         from app.graph.tools.transport_tool import get_transport_estimates
         from app.graph.tools.places_tool import get_places_and_attractions
@@ -94,6 +98,16 @@ Instructions:
         }
         transport_dict = t_data
         places_dict = p_data
+
+        # Inject RAG vector DB entries into places_dict
+        for tip in rag_tips:
+            places_dict.insert(0, {
+                "name": tip.get("title", f"{destination} Hidden Gem"),
+                "category": tip.get("category", "RAG Vector Guidebook"),
+                "best_time": "Afternoon",
+                "estimated_cost_per_person": 150.0,
+                "description": tip.get("content", f"Hyper-local recommendation for {destination}.")
+            })
     else:
         weather_dict = {
             "destination": destination,
@@ -105,10 +119,10 @@ Instructions:
         places_dict = [p.model_dump() for p in research_output.places_found]
 
     log_entry = {
-        "agent": "Research Agents Node (LLM Dynamic Research)",
+        "agent": "Research Agents Node (RAG + Qdrant Vector DB)",
         "status": "SUCCESS",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Dynamically researched {destination}: {len(places_dict)} attractions, weather ({weather_dict.get('climate_type')}), and {len(transport_dict)} transit options."
+        "details": f"Researched {destination} with RAG Qdrant Vector DB ({len(rag_tips)} hyper-local guidebooks retrieved)."
     }
 
     existing_logs = state.get("agent_logs", [])
