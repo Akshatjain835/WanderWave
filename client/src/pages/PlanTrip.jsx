@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
+import { AgentVisualizer } from '../components/AgentVisualizer';
+import { MultiStepTripForm } from '../components/MultiStepTripForm';
 import {
   Compass,
   Sparkles,
@@ -22,12 +24,15 @@ import {
   Clock,
   HelpCircle,
   CheckCircle2,
+  ListFilter,
+  Wand2,
 } from 'lucide-react';
 
 export const PlanTrip = () => {
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
 
+  const [inputMode, setInputMode] = useState('wizard'); // 'wizard' | 'prompt'
   const [prompt, setPrompt] = useState('');
   const [destination, setDestination] = useState('Manali');
   const [startingCity, setStartingCity] = useState('Delhi');
@@ -41,6 +46,7 @@ export const PlanTrip = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeDayTab, setActiveDayTab] = useState(1);
+  const [activeAgentStep, setActiveAgentStep] = useState(1);
 
   useEffect(() => {
     if (searchParams.get('preset') === 'manali') {
@@ -57,47 +63,70 @@ export const PlanTrip = () => {
     setPrompt('');
   };
 
-  const handleAnalyze = async (e) => {
-    if (e) e.preventDefault();
+  const executePipelineRequest = async (activePrompt, customData = {}) => {
     setAnalyzing(true);
     setError(null);
+    setActiveAgentStep(1);
 
-    const currentDest = destination.trim() || 'Manali';
-    const currentOrigin = startingCity.trim() || 'Delhi';
+    const stepInterval = setInterval(() => {
+      setActiveAgentStep((prev) => (prev < 5 ? prev + 1 : prev));
+    }, 600);
 
-    const activePrompt = (prompt.trim() && prompt.toLowerCase().includes(currentDest.toLowerCase()))
-      ? prompt.trim()
-      : `Plan a ${duration} day trip to ${currentDest} from ${currentOrigin} under ${budget} for ${travelers} people with ${travelStyle} travel style`;
+    const currentDest = customData.destination || destination.trim() || 'Manali';
+    const currentOrigin = customData.startingCity || startingCity.trim() || 'Delhi';
 
     try {
       const response = await api.post('/trips/analyze', {
         prompt: activePrompt,
         destination: currentDest,
         startingCity: currentOrigin,
-        duration: Number(duration),
-        budget: Number(budget),
-        travelers: Number(travelers),
-        interests: ['Sightseeing', 'Cafes', 'Local Culture'],
-        travelStyle,
+        duration: Number(customData.duration || duration),
+        budget: Number(customData.budget || budget),
+        travelers: Number(customData.travelers || travelers),
+        interests: customData.interests || ['Sightseeing', 'Cafes', 'Local Culture'],
+        travelStyle: customData.travelStyle || travelStyle,
       });
 
       if (response.data.success) {
         setAnalysisResult(response.data.data);
         setActiveDayTab(1);
+        setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Analysis failed');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Error analyzing trip request. Check backend server.');
     } finally {
+      clearInterval(stepInterval);
       setAnalyzing(false);
     }
   };
 
-  // Day 8 HITL Resume Handler
+  const handleAnalyzePrompt = (e) => {
+    if (e) e.preventDefault();
+    const currentDest = destination.trim() || 'Manali';
+    const currentOrigin = startingCity.trim() || 'Delhi';
+    const activePrompt = (prompt.trim() && prompt.toLowerCase().includes(currentDest.toLowerCase()))
+      ? prompt.trim()
+      : `Plan a ${duration} day trip to ${currentDest} from ${currentOrigin} under ${budget} for ${travelers} people with ${travelStyle} travel style`;
+    
+    executePipelineRequest(activePrompt);
+  };
+
+  const handleWizardSubmit = (generatedPrompt, formData) => {
+    setDestination(formData.destination);
+    setStartingCity(formData.startingCity);
+    setDuration(formData.duration);
+    setBudget(formData.budget);
+    setTravelers(formData.travelers);
+    setTravelStyle(formData.travelStyle);
+    executePipelineRequest(generatedPrompt, formData);
+  };
+
   const handleSelectOption = async (option) => {
     setResuming(true);
     setError(null);
+    setActiveAgentStep(2);
 
     const chosenDest = option.destination || destination || 'Goa';
     const chosenBudget = option.budget || budget || 30000;
@@ -121,6 +150,7 @@ export const PlanTrip = () => {
       if (response.data.success) {
         setAnalysisResult(response.data.data);
         setActiveDayTab(1);
+        setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Failed to resume graph execution.');
       }
@@ -140,186 +170,154 @@ export const PlanTrip = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 8: Human-in-the-Loop (HITL) Interruption
+            <BrainCircuit className="w-3.5 h-3.5" /> Day 13: Guided Multi-Step Wizard & Agent Visualizer
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Interactive Agentic Trip Planner Engine
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            LangGraph Pipeline: Requirement Analyzer ➔ HITL Router ➔ Research Agents ➔ Budget Allocator ➔ Itinerary Planner.
+            LangGraph Pipeline: Requirement Analyzer ➔ RAG Qdrant Vector DB ➔ Budget Allocator ➔ Itinerary Planner ➔ 4 Validation Checks.
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            setPrompt('I want to visit Manali for 5 days under 30000 for 2 people with trekking and cafes from Delhi');
-            setDestination('Manali');
-            setDuration(5);
-            setBudget(30000);
-            setTravelers(2);
-          }}
-          className="px-4 py-2.5 rounded-xl glass-card hover:border-cyan-500/40 text-xs font-semibold text-cyan-400 flex items-center gap-2 transition-all self-start md:self-auto"
-        >
-          <Sparkles className="w-4 h-4" /> Load Placement Scenario (Delhi → Manali ₹30k)
-        </button>
+        {/* Input Mode Toggle */}
+        <div className="flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800 self-start md:self-auto">
+          <button
+            onClick={() => setInputMode('wizard')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              inputMode === 'wizard'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <ListFilter className="w-3.5 h-3.5" /> Guided Wizard
+          </button>
+          <button
+            onClick={() => setInputMode('prompt')}
+            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+              inputMode === 'prompt'
+                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                : 'text-slate-400 hover:text-white'
+            }`}
+          >
+            <Wand2 className="w-3.5 h-3.5" /> Quick Prompt
+          </button>
+        </div>
       </div>
 
+      {/* Real-Time Agent Execution Visualizer */}
+      <AgentVisualizer
+        activeStep={activeAgentStep}
+        agentLogs={analysisResult?.agentLogs}
+        isComplete={Boolean(analysisResult && !analysisResult.requiresHumanInput && !analyzing)}
+        requiresHumanInput={Boolean(analysisResult?.requiresHumanInput)}
+      />
+
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Trip Request Form */}
+        {/* Left Column: Form (Wizard vs Quick Prompt) */}
         <div className="lg:col-span-5 space-y-6">
-          <form onSubmit={handleAnalyze} className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
-            <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                <span>Natural Language Trip Prompt</span>
-                <span className="text-[10px] text-cyan-400 font-mono">Gemini Dynamic Parser</span>
-              </label>
-              <textarea
-                rows={3}
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="e.g., I want to visit Manali for 5 days under 30000 for 2 people with trekking and cafes starting from Delhi..."
-                className="w-full p-3 glass-input rounded-2xl text-xs font-medium focus:ring-2 focus:ring-cyan-500/40 leading-relaxed"
-              />
-            </div>
-
-            <div className="relative flex py-1 items-center">
-              <div className="flex-grow border-t border-slate-800"></div>
-              <span className="flex-shrink mx-3 text-[10px] uppercase font-mono tracking-wider text-slate-500">
-                Or Customize Parameters
-              </span>
-              <div className="flex-grow border-t border-slate-800"></div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
+          {inputMode === 'wizard' ? (
+            <MultiStepTripForm onSubmit={handleWizardSubmit} isLoading={analyzing || resuming} />
+          ) : (
+            <form onSubmit={handleAnalyzePrompt} className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <MapPin className="w-3.5 h-3.5 text-cyan-400" /> Destination
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
+                  <span>Natural Language Trip Prompt</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">Gemini Dynamic Parser</span>
                 </label>
-                <input
-                  type="text"
-                  value={destination}
-                  onChange={(e) => handleDestinationChange(e.target.value)}
-                  className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
+                <textarea
+                  rows={3}
+                  value={prompt}
+                  onChange={(e) => setPrompt(e.target.value)}
+                  placeholder="e.g., I want to visit Manali for 5 days under 30000 for 2 people with trekking and cafes starting from Delhi..."
+                  className="w-full p-3 glass-input rounded-2xl text-xs font-medium focus:ring-2 focus:ring-cyan-500/40 leading-relaxed"
                 />
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <Compass className="w-3.5 h-3.5 text-cyan-400" /> Origin City
-                </label>
-                <input
-                  type="text"
-                  value={startingCity}
-                  onChange={(e) => setStartingCity(e.target.value)}
-                  className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
-                />
+              <div className="relative flex py-1 items-center">
+                <div className="flex-grow border-t border-slate-800"></div>
+                <span className="flex-shrink mx-3 text-[10px] uppercase font-mono tracking-wider text-slate-500">
+                  Or Quick Parameters
+                </span>
+                <div className="flex-grow border-t border-slate-800"></div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <Calendar className="w-3.5 h-3.5 text-cyan-400" /> Duration (Days)
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  max={30}
-                  value={duration}
-                  onChange={(e) => setDuration(e.target.value)}
-                  className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                    <MapPin className="w-3.5 h-3.5 text-cyan-400" /> Destination
+                  </label>
+                  <input
+                    type="text"
+                    value={destination}
+                    onChange={(e) => handleDestinationChange(e.target.value)}
+                    className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                    <Compass className="w-3.5 h-3.5 text-cyan-400" /> Origin City
+                  </label>
+                  <input
+                    type="text"
+                    value={startingCity}
+                    onChange={(e) => setStartingCity(e.target.value)}
+                    className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                    <Calendar className="w-3.5 h-3.5 text-cyan-400" /> Duration (Days)
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={30}
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
+                    <DollarSign className="w-3.5 h-3.5 text-cyan-400" /> Budget (₹ INR)
+                  </label>
+                  <input
+                    type="number"
+                    step={1000}
+                    value={budget}
+                    onChange={(e) => setBudget(e.target.value)}
+                    className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <DollarSign className="w-3.5 h-3.5 text-cyan-400" /> Budget (₹ INR)
-                </label>
-                <input
-                  type="number"
-                  step={1000}
-                  value={budget}
-                  onChange={(e) => setBudget(e.target.value)}
-                  className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                  <Users className="w-3.5 h-3.5 text-cyan-400" /> Travelers
-                </label>
-                <input
-                  type="number"
-                  min={1}
-                  value={travelers}
-                  onChange={(e) => setTravelers(e.target.value)}
-                  className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1">
-                  Travel Style
-                </label>
-                <select
-                  value={travelStyle}
-                  onChange={(e) => setTravelStyle(e.target.value)}
-                  className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium bg-slate-900 text-slate-200"
-                >
-                  <option value="Adventure">Adventure 🏔️</option>
-                  <option value="Relaxed">Relaxed 🏖️</option>
-                  <option value="Cultural">Cultural 🏛️</option>
-                  <option value="Luxury">Luxury 💎</option>
-                  <option value="Budget">Budget 🎒</option>
-                </select>
-              </div>
-            </div>
-
-            <button
-              type="submit"
-              disabled={analyzing || resuming}
-              className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
-            >
-              {analyzing ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin text-cyan-200" />
-                  <span>Analyzing & Planning...</span>
-                </>
-              ) : (
-                <>
-                  <BrainCircuit className="w-4 h-4" />
-                  <span>Generate Day-by-Day Plan</span>
-                  <ArrowRight className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </form>
-
-          {/* Agent Execution Trace Log */}
-          {analysisResult?.agentLogs && (
-            <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
-              <p className="text-[11px] font-mono uppercase text-slate-400 flex items-center justify-between">
-                <span>LangGraph Execution Trace</span>
-                <span className="text-cyan-400 font-bold">{analysisResult.agentLogs.length} Nodes Executed</span>
-              </p>
-              <div className="bg-slate-950 p-3 rounded-2xl border border-slate-900 text-[11px] font-mono space-y-2 max-h-48 overflow-y-auto">
-                {analysisResult.agentLogs.map((log, idx) => (
-                  <div key={idx} className="border-b border-slate-900/60 pb-1.5 last:border-0 last:pb-0">
-                    <div className="flex items-center justify-between text-cyan-400 font-bold">
-                      <span>[{log.timestamp}] {log.agent}</span>
-                      <span className={`text-[9px] uppercase font-mono ${log.status === 'PAUSED_FOR_HUMAN_INPUT' ? 'text-amber-400' : 'text-emerald-400'}`}>
-                        {log.status}
-                      </span>
-                    </div>
-                    <p className="text-slate-400 text-[10px] mt-0.5">{log.details}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
+              <button
+                type="submit"
+                disabled={analyzing || resuming}
+                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+              >
+                {analyzing ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin text-cyan-200" />
+                    <span>Analyzing & Planning...</span>
+                  </>
+                ) : (
+                  <>
+                    <BrainCircuit className="w-4 h-4" />
+                    <span>Generate Day-by-Day Plan</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </>
+                )}
+              </button>
+            </form>
           )}
         </div>
 
-        {/* Right Column: Day 8 HITL Interruption Card or Day 7 Itinerary */}
+        {/* Right Column: Output / HITL Interruption Card / Itinerary */}
         <div className="lg:col-span-7 space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
@@ -328,7 +326,7 @@ export const PlanTrip = () => {
             </div>
           )}
 
-          {/* Day 8 Human-in-the-Loop Decision Card */}
+          {/* HITL Interruption Card */}
           {analysisResult?.requiresHumanInput && (
             <div className="glass-panel p-6 rounded-3xl border border-amber-500/30 bg-amber-500/5 space-y-5 animate-in fade-in duration-200">
               <div className="flex items-center gap-3 border-b border-amber-500/20 pb-4">
@@ -346,7 +344,7 @@ export const PlanTrip = () => {
                 </div>
               </div>
 
-              {/* Interactive Choice Option Buttons */}
+              {/* Choice Buttons */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {analysisResult.humanPromptOptions?.map((opt) => (
                   <button
@@ -382,7 +380,7 @@ export const PlanTrip = () => {
               <div>
                 <h3 className="text-base font-bold text-white">Agentic AI Trip Planner Ready</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                  Enter your trip prompt or click "Generate Day-by-Day Plan" to run the LangGraph Multi-Agent pipeline.
+                  Complete the guided wizard or enter your trip prompt to execute the LangGraph pipeline.
                 </p>
               </div>
             </div>
@@ -396,7 +394,7 @@ export const PlanTrip = () => {
                   {resuming ? 'Resuming LangGraph Execution...' : 'Executing Multi-Agent Pipeline...'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  Analyzer ➔ HITL Router ➔ Research Agents ➔ Budget Allocator ➔ Itinerary Planner
+                  Requirement Analyzer ➔ RAG Qdrant Vector DB ➔ Budget Allocator ➔ Itinerary Planner ➔ Validator Node
                 </p>
               </div>
             </div>
