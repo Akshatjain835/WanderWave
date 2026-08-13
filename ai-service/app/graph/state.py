@@ -34,5 +34,11 @@ class TripState(TypedDict, total=False):
     clarification_prompt: str
     user_decision: Optional[str]
 
+    # Cyclic Re-Planning & Validation State (Day 10)
+    validation_passed: bool
+    validation_issues: List[str]
+    validation_feedback: str
+    retry_count: int
+
     # Execution Trace Logs
     agent_logs: List[Dict[str, Any]]

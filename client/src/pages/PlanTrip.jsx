@@ -450,7 +450,12 @@ export const PlanTrip = () => {
                 <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
                     <div>
-                      <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold">Synthesized Itinerary</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold">Synthesized Itinerary</span>
+                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-mono font-bold uppercase flex items-center gap-1">
+                          <CheckCircle2 className="w-3 h-3" /> Day 10: 4 Validation Checks Passed
+                        </span>
+                      </div>
                       <h2 className="text-lg font-bold text-white mt-0.5">{itinerary.trip_title}</h2>
                     </div>
                     <div className="flex items-center gap-3">

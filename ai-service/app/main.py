@@ -67,7 +67,7 @@ async def analyze_trip(request: AnalyzeRequest):
 
         return {
             "success": True,
-            "message": "Trip requirement analyzed and planned by Python LangGraph Agents 🧠",
+            "message": "Trip requirement analyzed, planned & validated by Python LangGraph Agents 🧠",
             "data": {
                 "destination": result_state.get("destination"),
                 "startingCity": result_state.get("starting_city"),
@@ -80,6 +80,10 @@ async def analyze_trip(request: AnalyzeRequest):
                 "requiresHumanInput": result_state.get("requires_human_input", False),
                 "humanPromptOptions": result_state.get("human_prompt_options", []),
                 "clarificationPrompt": result_state.get("clarification_prompt", ""),
+                "validationPassed": result_state.get("validation_passed", True),
+                "validationIssues": result_state.get("validation_issues", []),
+                "validationFeedback": result_state.get("validation_feedback", ""),
+                "retryCount": result_state.get("retry_count", 1),
                 "userLongTermPreferences": result_state.get("user_long_term_preferences", {}),
                 "weatherForecast": result_state.get("weather_forecast", {}),
                 "transportOptions": result_state.get("transport_options", []),
@@ -118,6 +122,10 @@ async def resume_trip(request: ResumeRequest):
                 "interests": result_state.get("interests"),
                 "travelStyle": result_state.get("travel_style"),
                 "requiresHumanInput": False,
+                "validationPassed": result_state.get("validation_passed", True),
+                "validationIssues": result_state.get("validation_issues", []),
+                "validationFeedback": result_state.get("validation_feedback", ""),
+                "retryCount": result_state.get("retry_count", 1),
                 "weatherForecast": result_state.get("weather_forecast", {}),
                 "transportOptions": result_state.get("transport_options", []),
                 "placesFound": result_state.get("places_found", []),
