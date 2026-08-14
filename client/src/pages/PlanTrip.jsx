@@ -4,6 +4,8 @@ import { useAuth } from '../context/AuthContext';
 import api from '../services/api';
 import { AgentVisualizer } from '../components/AgentVisualizer';
 import { MultiStepTripForm } from '../components/MultiStepTripForm';
+import { BudgetChart } from '../components/BudgetChart';
+import { ItineraryViewer } from '../components/ItineraryViewer';
 import {
   Compass,
   Sparkles,
@@ -15,13 +17,6 @@ import {
   AlertTriangle,
   ArrowRight,
   RefreshCw,
-  Sun,
-  Bus,
-  Home,
-  Utensils,
-  Camera,
-  ShieldAlert,
-  Clock,
   HelpCircle,
   CheckCircle2,
   ListFilter,
@@ -43,9 +38,9 @@ export const PlanTrip = () => {
 
   const [analyzing, setAnalyzing] = useState(false);
   const [resuming, setResuming] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
-  const [activeDayTab, setActiveDayTab] = useState(1);
   const [activeAgentStep, setActiveAgentStep] = useState(1);
 
   useEffect(() => {
@@ -89,7 +84,6 @@ export const PlanTrip = () => {
 
       if (response.data.success) {
         setAnalysisResult(response.data.data);
-        setActiveDayTab(1);
         setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Analysis failed');
@@ -149,7 +143,6 @@ export const PlanTrip = () => {
 
       if (response.data.success) {
         setAnalysisResult(response.data.data);
-        setActiveDayTab(1);
         setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Failed to resume graph execution.');
@@ -161,8 +154,32 @@ export const PlanTrip = () => {
     }
   };
 
-  const itinerary = analysisResult?.itinerary;
-  const budgetBreakdown = analysisResult?.budgetBreakdown;
+  const handleSaveTrip = async () => {
+    if (!analysisResult?.itinerary) return;
+    setIsSaving(true);
+    try {
+      const saveRes = await api.post('/trips', {
+        tripTitle: analysisResult.itinerary.trip_title,
+        destination: analysisResult.destination || destination,
+        startingCity: analysisResult.startingCity || startingCity,
+        duration: Number(analysisResult.duration || duration),
+        budget: Number(analysisResult.budget || budget),
+        travelers: Number(analysisResult.travelers || travelers),
+        travelStyle: analysisResult.travelStyle || travelStyle,
+        interests: analysisResult.interests || ['Sightseeing'],
+        budgetBreakdown: analysisResult.budgetBreakdown || {},
+        itinerary: analysisResult.itinerary || {},
+        weatherForecast: analysisResult.weatherForecast || {},
+      });
+      if (saveRes.data.success) {
+        alert('🎉 Trip saved to your MongoDB account successfully! You can view it under "My Trips".');
+      }
+    } catch (err) {
+      alert(err.response?.data?.message || 'Error saving trip to database.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
@@ -170,7 +187,7 @@ export const PlanTrip = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 13: Guided Multi-Step Wizard & Agent Visualizer
+            <BrainCircuit className="w-3.5 h-3.5" /> Day 14: Day-by-Day Dashboard & Budget Chart
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Interactive Agentic Trip Planner Engine
@@ -317,7 +334,7 @@ export const PlanTrip = () => {
           )}
         </div>
 
-        {/* Right Column: Output / HITL Interruption Card / Itinerary */}
+        {/* Right Column: Output / HITL Interruption Card / Dashboard */}
         <div className="lg:col-span-7 space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
@@ -402,190 +419,15 @@ export const PlanTrip = () => {
 
           {analysisResult && !analysisResult.requiresHumanInput && !analyzing && !resuming && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Budget Allocation Breakdown */}
-              {budgetBreakdown && (
-                <div className="glass-panel p-5 rounded-3xl border border-slate-800 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-xs font-bold text-white flex items-center gap-2">
-                      <DollarSign className="w-4 h-4 text-emerald-400" /> Budget Allocation Breakdown
-                    </h3>
-                    <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                      Total Cap: ₹{budgetBreakdown.total_budget?.toLocaleString()}
-                    </span>
-                  </div>
+              {/* Day 14 Budget Allocation Visual Chart */}
+              <BudgetChart budgetBreakdown={analysisResult.budgetBreakdown} />
 
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                    <div className="glass-card p-2.5 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[9px] text-slate-400 uppercase font-mono">Stay (35%)</p>
-                      <p className="text-xs font-extrabold text-white">₹{budgetBreakdown.accommodation_stay?.toLocaleString()}</p>
-                    </div>
-
-                    <div className="glass-card p-2.5 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[9px] text-slate-400 uppercase font-mono">Transit (25%)</p>
-                      <p className="text-xs font-extrabold text-white">₹{budgetBreakdown.transportation?.toLocaleString()}</p>
-                    </div>
-
-                    <div className="glass-card p-2.5 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[9px] text-slate-400 uppercase font-mono">Meals (20%)</p>
-                      <p className="text-xs font-extrabold text-white">₹{budgetBreakdown.food_and_meals?.toLocaleString()}</p>
-                    </div>
-
-                    <div className="glass-card p-2.5 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[9px] text-slate-400 uppercase font-mono">Activities (15%)</p>
-                      <p className="text-xs font-extrabold text-white">₹{budgetBreakdown.activities_and_sightseeing?.toLocaleString()}</p>
-                    </div>
-
-                    <div className="glass-card p-2.5 rounded-2xl border border-slate-800 text-center">
-                      <p className="text-[9px] text-slate-400 uppercase font-mono">Cushion (5%)</p>
-                      <p className="text-xs font-extrabold text-rose-300">₹{budgetBreakdown.emergency_cushion?.toLocaleString()}</p>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Day 7 Day-by-Day Itinerary */}
-              {itinerary && itinerary.days && (
-                <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold">Synthesized Itinerary</span>
-                        <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[9px] font-mono font-bold uppercase flex items-center gap-1">
-                          <CheckCircle2 className="w-3 h-3" /> Day 10: 4 Validation Checks Passed
-                        </span>
-                      </div>
-                      <h2 className="text-lg font-bold text-white mt-0.5">{itinerary.trip_title}</h2>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        <span className="text-[10px] text-slate-400 uppercase font-mono">Est. Total Spend</span>
-                        <p className="text-sm font-extrabold text-emerald-400">₹{itinerary.estimated_total_cost_inr?.toLocaleString()}</p>
-                      </div>
-                      <button
-                        onClick={async () => {
-                          try {
-                            const saveRes = await api.post('/trips', {
-                              tripTitle: itinerary.trip_title,
-                              destination: analysisResult.destination || destination,
-                              startingCity: analysisResult.startingCity || startingCity,
-                              duration: Number(analysisResult.duration || duration),
-                              budget: Number(analysisResult.budget || budget),
-                              travelers: Number(analysisResult.travelers || travelers),
-                              travelStyle: analysisResult.travelStyle || travelStyle,
-                              interests: analysisResult.interests || ['Sightseeing'],
-                              budgetBreakdown: analysisResult.budgetBreakdown || {},
-                              itinerary: analysisResult.itinerary || {},
-                              weatherForecast: analysisResult.weatherForecast || {},
-                            });
-                            if (saveRes.data.success) {
-                              alert('🎉 Trip saved to your MongoDB account successfully! You can view it under "My Trips".');
-                            }
-                          } catch (err) {
-                            alert(err.response?.data?.message || 'Error saving trip to database.');
-                          }
-                        }}
-                        className="px-3.5 py-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-300 font-bold text-xs flex items-center gap-1.5 transition-all shadow-md"
-                      >
-                        💾 Save Trip
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Day Tabs Bar */}
-                  <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
-                    {itinerary.days.map((d) => (
-                      <button
-                        key={d.day_number}
-                        onClick={() => setActiveDayTab(d.day_number)}
-                        className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all whitespace-nowrap flex items-center gap-2 ${
-                          activeDayTab === d.day_number
-                            ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-lg shadow-cyan-500/25'
-                            : 'glass-card text-slate-400 hover:text-white border border-slate-800'
-                        }`}
-                      >
-                        <Calendar className="w-3.5 h-3.5" /> Day {d.day_number}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Selected Day Activity Slots */}
-                  {itinerary.days
-                    .filter((d) => d.day_number === activeDayTab)
-                    .map((dayData) => (
-                      <div key={dayData.day_number} className="space-y-4 animate-in fade-in duration-150">
-                        <div className="p-3 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-between text-xs text-cyan-300">
-                          <span className="font-bold text-white">Day {dayData.day_number}: {dayData.title}</span>
-                          <span className="text-[11px] font-mono">{dayData.weather_snippet}</span>
-                        </div>
-
-                        <div className="space-y-3">
-                          {/* Morning Slot */}
-                          {dayData.morning && (
-                            <div className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase font-mono flex items-center gap-1">
-                                  <Sun className="w-3 h-3" /> Morning ({dayData.morning.time})
-                                </span>
-                                <span className="text-xs font-mono font-bold text-emerald-400">₹{dayData.morning.estimated_cost_inr}</span>
-                              </div>
-                              <h4 className="text-sm font-bold text-white">{dayData.morning.activity}</h4>
-                              <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-cyan-400" /> {dayData.morning.location}
-                              </p>
-                              {dayData.morning.tips && (
-                                <p className="text-[11px] text-cyan-300/80 bg-slate-950 p-2 rounded-xl border border-slate-900">
-                                  💡 Tip: {dayData.morning.tips}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Afternoon Slot */}
-                          {dayData.afternoon && (
-                            <div className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase font-mono flex items-center gap-1">
-                                  <Clock className="w-3 h-3" /> Afternoon ({dayData.afternoon.time})
-                                </span>
-                                <span className="text-xs font-mono font-bold text-emerald-400">₹{dayData.afternoon.estimated_cost_inr}</span>
-                              </div>
-                              <h4 className="text-sm font-bold text-white">{dayData.afternoon.activity}</h4>
-                              <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-cyan-400" /> {dayData.afternoon.location}
-                              </p>
-                              {dayData.afternoon.tips && (
-                                <p className="text-[11px] text-cyan-300/80 bg-slate-950 p-2 rounded-xl border border-slate-900">
-                                  💡 Tip: {dayData.afternoon.tips}
-                                </p>
-                              )}
-                            </div>
-                          )}
-
-                          {/* Evening Slot */}
-                          {dayData.evening && (
-                            <div className="glass-card p-4 rounded-2xl border border-slate-800 space-y-2">
-                              <div className="flex items-center justify-between">
-                                <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold uppercase font-mono flex items-center gap-1">
-                                  <Utensils className="w-3 h-3" /> Evening ({dayData.evening.time})
-                                </span>
-                                <span className="text-xs font-mono font-bold text-emerald-400">₹{dayData.evening.estimated_cost_inr}</span>
-                              </div>
-                              <h4 className="text-sm font-bold text-white">{dayData.evening.activity}</h4>
-                              <p className="text-xs text-slate-400 flex items-center gap-1.5">
-                                <MapPin className="w-3.5 h-3.5 text-cyan-400" /> {dayData.evening.location}
-                              </p>
-                              {dayData.evening.tips && (
-                                <p className="text-[11px] text-cyan-300/80 bg-slate-950 p-2 rounded-xl border border-slate-900">
-                                  💡 Tip: {dayData.evening.tips}
-                                </p>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                </div>
-              )}
+              {/* Day 14 Interactive Itinerary Viewer */}
+              <ItineraryViewer
+                itinerary={analysisResult.itinerary}
+                onSaveTrip={handleSaveTrip}
+                isSaving={isSaving}
+              />
             </div>
           )}
         </div>
