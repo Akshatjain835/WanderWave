@@ -81,13 +81,12 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
           {[1, 2, 3, 4].map((step) => (
             <div
               key={step}
-              className={`w-2.5 h-2.5 rounded-full transition-all ${
-                currentStep === step
+              className={`w-2.5 h-2.5 rounded-full transition-all ${currentStep === step
                   ? 'bg-cyan-400 ring-4 ring-cyan-500/20 scale-110'
                   : currentStep > step
-                  ? 'bg-emerald-400'
-                  : 'bg-slate-800'
-              }`}
+                    ? 'bg-emerald-400'
+                    : 'bg-slate-800'
+                }`}
             />
           ))}
         </div>
@@ -141,11 +140,10 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                     type="button"
                     key={dest}
                     onClick={() => setFormData({ ...formData, destination: dest })}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${
-                      formData.destination === dest
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-all ${formData.destination === dest
                         ? 'bg-cyan-500 text-slate-950 font-bold shadow-md shadow-cyan-500/20'
                         : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
-                    }`}
+                      }`}
                   >
                     {dest}
                   </button>
@@ -244,11 +242,10 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                     type="button"
                     key={tier.amount}
                     onClick={() => setFormData({ ...formData, budget: tier.amount })}
-                    className={`p-2.5 rounded-xl text-xs font-medium border text-center transition-all ${
-                      formData.budget === tier.amount
+                    className={`p-2.5 rounded-xl text-xs font-medium border text-center transition-all ${formData.budget === tier.amount
                         ? 'bg-emerald-500/10 border-emerald-500 text-emerald-400 font-bold'
                         : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
+                      }`}
                   >
                     {tier.label}
                     <span className="block text-[10px] text-slate-400 font-mono mt-0.5">
@@ -273,11 +270,10 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                     type="button"
                     key={style.id}
                     onClick={() => setFormData({ ...formData, travelStyle: style.id })}
-                    className={`p-3 rounded-2xl border text-left transition-all ${
-                      formData.travelStyle === style.id
+                    className={`p-3 rounded-2xl border text-left transition-all ${formData.travelStyle === style.id
                         ? 'bg-cyan-500/10 border-cyan-500 text-white ring-1 ring-cyan-500/30'
                         : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
+                      }`}
                   >
                     <span className="block text-xs font-bold text-cyan-400">{style.label}</span>
                     <span className="block text-[10px] text-slate-400 mt-0.5">{style.desc}</span>
@@ -297,11 +293,10 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                       type="button"
                       key={interest}
                       onClick={() => handleInterestToggle(interest)}
-                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
-                        selected
+                      className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${selected
                           ? 'bg-cyan-500 border-cyan-500 text-slate-950 font-bold'
                           : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                      }`}
+                        }`}
                     >
                       {interest} {selected && '✓'}
                     </button>
@@ -319,11 +314,10 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                     type="button"
                     key={diet}
                     onClick={() => setFormData({ ...formData, dietary: diet })}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${
-                      formData.dietary === diet
+                    className={`px-3 py-1.5 rounded-xl text-xs font-medium border transition-all ${formData.dietary === diet
                         ? 'bg-purple-500/20 border-purple-500 text-purple-300 font-bold'
                         : 'bg-slate-900 border-slate-800 text-slate-300 hover:bg-slate-800'
-                    }`}
+                      }`}
                   >
                     {diet}
                   </button>

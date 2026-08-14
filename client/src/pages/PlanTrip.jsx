@@ -6,6 +6,7 @@ import { AgentVisualizer } from '../components/AgentVisualizer';
 import { MultiStepTripForm } from '../components/MultiStepTripForm';
 import { BudgetChart } from '../components/BudgetChart';
 import { ItineraryViewer } from '../components/ItineraryViewer';
+import { HITLModal } from '../components/HITLModal';
 import {
   Compass,
   Sparkles,
@@ -42,6 +43,7 @@ export const PlanTrip = () => {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
   const [activeAgentStep, setActiveAgentStep] = useState(1);
+  const [isHITLModalOpen, setIsHITLModalOpen] = useState(false);
 
   useEffect(() => {
     if (searchParams.get('preset') === 'manali') {
@@ -84,6 +86,9 @@ export const PlanTrip = () => {
 
       if (response.data.success) {
         setAnalysisResult(response.data.data);
+        if (response.data.data?.requiresHumanInput) {
+          setIsHITLModalOpen(true);
+        }
         setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Analysis failed');
@@ -121,6 +126,7 @@ export const PlanTrip = () => {
     setResuming(true);
     setError(null);
     setActiveAgentStep(2);
+    setIsHITLModalOpen(false);
 
     const chosenDest = option.destination || destination || 'Goa';
     const chosenBudget = option.budget || budget || 30000;
@@ -143,6 +149,9 @@ export const PlanTrip = () => {
 
       if (response.data.success) {
         setAnalysisResult(response.data.data);
+        if (response.data.data?.requiresHumanInput) {
+          setIsHITLModalOpen(true);
+        }
         setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Failed to resume graph execution.');
@@ -172,7 +181,7 @@ export const PlanTrip = () => {
         weatherForecast: analysisResult.weatherForecast || {},
       });
       if (saveRes.data.success) {
-        alert('🎉 Trip saved to your MongoDB account successfully! You can view it under "My Trips".');
+        alert('🎉 Trip saved to your account successfully! View it under "My Trips".');
       }
     } catch (err) {
       alert(err.response?.data?.message || 'Error saving trip to database.');
@@ -183,11 +192,21 @@ export const PlanTrip = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+      {/* Day 15 HITL Interruption Modal */}
+      <HITLModal
+        isOpen={isHITLModalOpen}
+        onClose={() => setIsHITLModalOpen(false)}
+        clarificationPrompt={analysisResult?.clarificationPrompt}
+        options={analysisResult?.humanPromptOptions}
+        onSelectOption={handleSelectOption}
+        isResuming={resuming}
+      />
+
       {/* Header Banner */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 14: Day-by-Day Dashboard & Budget Chart
+            <BrainCircuit className="w-3.5 h-3.5" /> Day 15: Human-in-the-Loop Modal & Trip History
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Interactive Agentic Trip Planner Engine

@@ -18,11 +18,16 @@ import {
   Sun,
   Utensils,
   Camera,
+  Download,
+  Printer,
+  GitFork,
+  FileCode,
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export const MyTrips = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [trips, setTrips] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -83,6 +88,24 @@ export const MyTrips = () => {
     }
   };
 
+  const handleExportJSON = (trip) => {
+    const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(trip, null, 2));
+    const downloadAnchor = document.createElement('a');
+    downloadAnchor.setAttribute("href", dataStr);
+    downloadAnchor.setAttribute("download", `${trip.destination.toLowerCase()}_itinerary.json`);
+    document.body.appendChild(downloadAnchor);
+    downloadAnchor.click();
+    downloadAnchor.remove();
+  };
+
+  const handlePrintPDF = () => {
+    window.print();
+  };
+
+  const handleForkTrip = (trip) => {
+    navigate(`/plan-trip?destination=${encodeURIComponent(trip.destination)}&budget=${trip.budget}&duration=${trip.duration}`);
+  };
+
   const getStatusBadge = (status) => {
     switch (status) {
       case 'ongoing':
@@ -100,13 +123,13 @@ export const MyTrips = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <Compass className="w-3.5 h-3.5" /> Day 9: MongoDB Trip Persistence & User Dashboard
+            <Compass className="w-3.5 h-3.5" /> Day 15: Trip History, Exports & Fork Re-Plan
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             My Saved AI Trips ({trips.length})
           </h1>
           <p className="text-xs text-slate-400 mt-1">
-            Manage your saved itineraries, budget breakdowns, and trip execution statuses.
+            Export itineraries as JSON/PDF, fork & re-plan trips, and update execution statuses.
           </p>
         </div>
 
@@ -140,7 +163,7 @@ export const MyTrips = () => {
           <div>
             <h3 className="text-base font-bold text-white">No Saved Trips Yet</h3>
             <p className="text-xs text-slate-400 mt-1 max-w-sm">
-              You haven't saved any trips to your MongoDB account. Create a new trip with our Agentic AI planner!
+              You haven't saved any trips to your account. Create a new trip with our Agentic AI planner!
             </p>
           </div>
           <Link
@@ -191,44 +214,63 @@ export const MyTrips = () => {
               </div>
             </div>
 
-            {/* Quick Actions Footer */}
-            <div className="flex items-center justify-between pt-3 gap-2">
-              <button
-                onClick={() => setSelectedTrip(trip)}
-                className="flex-1 py-2 px-3 rounded-xl glass-card hover:border-cyan-500/40 text-cyan-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
-              >
-                <Eye className="w-3.5 h-3.5" /> View Itinerary
-              </button>
+            {/* Actions & Controls */}
+            <div className="space-y-2 pt-2 border-t border-slate-800/80">
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => setSelectedTrip(trip)}
+                  className="py-2 px-3 rounded-xl glass-card hover:border-cyan-500/40 text-cyan-400 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <Eye className="w-3.5 h-3.5" /> View
+                </button>
 
-              <select
-                value={trip.status}
-                onChange={(e) => handleUpdateStatus(trip._id, e.target.value)}
-                disabled={updatingId === trip._id}
-                className="py-2 px-2 rounded-xl glass-input text-[11px] font-mono text-slate-300 bg-slate-900 border border-slate-800"
-              >
-                <option value="planned">Planned</option>
-                <option value="ongoing">Ongoing</option>
-                <option value="completed">Completed</option>
-              </select>
+                <button
+                  onClick={() => handleForkTrip(trip)}
+                  className="py-2 px-3 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-300 font-bold text-xs flex items-center justify-center gap-1.5 transition-all"
+                >
+                  <GitFork className="w-3.5 h-3.5" /> Fork & Re-Plan
+                </button>
+              </div>
 
-              <button
-                onClick={() => handleDeleteTrip(trip._id)}
-                disabled={updatingId === trip._id}
-                className="p-2 rounded-xl glass-card hover:border-rose-500/40 text-rose-400 transition-all"
-                title="Delete Trip"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
+              <div className="flex items-center justify-between gap-2">
+                <button
+                  onClick={() => handleExportJSON(trip)}
+                  className="py-1.5 px-2.5 rounded-lg bg-slate-900 text-slate-300 text-[10px] font-mono hover:bg-slate-800 border border-slate-800 flex items-center gap-1"
+                  title="Export as JSON"
+                >
+                  <FileCode className="w-3 h-3 text-cyan-400" /> JSON
+                </button>
+
+                <select
+                  value={trip.status}
+                  onChange={(e) => handleUpdateStatus(trip._id, e.target.value)}
+                  disabled={updatingId === trip._id}
+                  className="py-1.5 px-2 rounded-lg glass-input text-[11px] font-mono text-slate-300 bg-slate-900 border border-slate-800"
+                >
+                  <option value="planned">Planned</option>
+                  <option value="ongoing">Ongoing</option>
+                  <option value="completed">Completed</option>
+                </select>
+
+                <button
+                  onClick={() => handleDeleteTrip(trip._id)}
+                  disabled={updatingId === trip._id}
+                  className="p-1.5 rounded-lg glass-card hover:border-rose-500/40 text-rose-400 transition-all"
+                  title="Delete Trip"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              </div>
             </div>
           </div>
         ))}
       </div>
 
-      {/* Itinerary Modal View */}
+      {/* Itinerary Detailed Modal View */}
       {selectedTrip && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="glass-panel w-full max-w-4xl max-h-[85vh] overflow-y-auto rounded-3xl border border-slate-800 p-6 space-y-6 animate-in zoom-in-95 duration-150">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-3">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   {getStatusBadge(selectedTrip.status)}
@@ -238,12 +280,22 @@ export const MyTrips = () => {
                 </div>
                 <h2 className="text-xl font-bold text-white">{selectedTrip.tripTitle}</h2>
               </div>
-              <button
-                onClick={() => setSelectedTrip(null)}
-                className="px-3 py-1.5 rounded-xl glass-card hover:bg-slate-800 text-xs font-bold text-slate-400"
-              >
-                Close
-              </button>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={handlePrintPDF}
+                  className="px-3 py-1.5 rounded-xl bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/30 text-cyan-300 text-xs font-bold flex items-center gap-1.5 transition-all"
+                >
+                  <Printer className="w-3.5 h-3.5" /> Print PDF
+                </button>
+
+                <button
+                  onClick={() => setSelectedTrip(null)}
+                  className="px-3 py-1.5 rounded-xl glass-card hover:bg-slate-800 text-xs font-bold text-slate-400"
+                >
+                  Close
+                </button>
+              </div>
             </div>
 
             {/* Budget Breakdown */}
