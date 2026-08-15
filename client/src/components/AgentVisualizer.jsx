@@ -1,63 +1,47 @@
 import React from 'react';
 import {
-  BrainCircuit,
-  Compass,
-  DollarSign,
-  Calendar,
-  ShieldCheck,
+  Sparkles,
   CheckCircle2,
   RefreshCw,
-  Sparkles,
   AlertCircle,
-  Database,
+  BrainCircuit,
+  MapPin,
+  CloudSun,
+  DollarSign,
+  Compass,
 } from 'lucide-react';
 
 export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHumanInput }) => {
   const steps = [
     {
       id: 1,
-      name: 'Requirement Analyzer',
+      name: 'Understanding your preferences',
       icon: BrainCircuit,
-      description: 'Parsing trip prompt, budget cap & traveler count',
-      color: 'text-cyan-400',
-      bg: 'bg-cyan-500/10',
-      border: 'border-cyan-500/20',
+      description: 'Parsing destination, duration, budget cap & traveler style',
     },
     {
       id: 2,
-      name: 'Research & RAG Vector DB',
-      icon: Database,
-      description: 'Querying weather API, transit options & Qdrant Cloud guidebooks',
-      color: 'text-blue-400',
-      bg: 'bg-blue-500/10',
-      border: 'border-blue-500/20',
+      name: 'Finding places & local secrets',
+      icon: MapPin,
+      description: 'Discovering authentic attractions & local guidebook tips',
     },
     {
       id: 3,
-      name: 'Budget Allocation Agent',
-      icon: DollarSign,
-      description: 'Partitioning stay (35%), transit (25%), meals (20%), activities (15%)',
-      color: 'text-emerald-400',
-      bg: 'bg-emerald-500/10',
-      border: 'border-emerald-500/20',
+      name: 'Checking weather & transit',
+      icon: CloudSun,
+      description: 'Analyzing rain forecasts & comfortable transit modes',
     },
     {
       id: 4,
-      name: 'Itinerary Planner Agent',
-      icon: Compass,
-      description: 'Synthesizing non-repeating morning, afternoon & evening activity slots',
-      color: 'text-indigo-400',
-      bg: 'bg-indigo-500/10',
-      border: 'border-indigo-500/20',
+      name: 'Optimizing your budget',
+      icon: DollarSign,
+      description: 'Balancing accommodation, meals, activities & emergency cushion',
     },
     {
       id: 5,
-      name: 'ValidatorAgent (4 Checks)',
-      icon: ShieldCheck,
-      description: 'Enforcing budget cap, rain weather rules, geographic sanity & density',
-      color: 'text-purple-400',
-      bg: 'bg-purple-500/10',
-      border: 'border-purple-500/20',
+      name: 'Building your itinerary',
+      icon: Compass,
+      description: 'Creating structured morning, afternoon & evening daily plans',
     },
   ];
 
@@ -77,7 +61,7 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
 
   return (
     <div className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-6 animate-in fade-in duration-200">
-      {/* Visualizer Header */}
+      {/* User-Friendly Progress Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800 pb-4">
         <div className="flex items-center gap-3">
           <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
@@ -85,20 +69,20 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
           </div>
           <div>
             <h3 className="text-base font-bold text-white flex items-center gap-2">
-              <span>LangGraph Multi-Agent Execution Visualizer</span>
+              <span>AI Planning Progress</span>
               <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 uppercase">
-                {isComplete ? 'Execution Complete 100%' : requiresHumanInput ? 'Paused (HITL)' : 'Agents Active'}
+                {isComplete ? 'Itinerary Ready 100%' : requiresHumanInput ? 'Input Needed' : 'AI Crafting Trip...'}
               </span>
             </h3>
             <p className="text-xs text-slate-400 mt-0.5">
-              Live status feed tracking autonomous agent nodes across state execution.
+              WanderWave AI is crafting your tailored trip experience in real time.
             </p>
           </div>
         </div>
 
         {/* Progress Metric */}
         <div className="text-right flex-shrink-0">
-          <span className="text-[10px] font-mono text-slate-400 uppercase">Pipeline Progress</span>
+          <span className="text-[10px] font-mono text-slate-400 uppercase">Progress</span>
           <p className="text-sm font-extrabold text-cyan-400">{calculateProgress()}%</p>
         </div>
       </div>
@@ -108,10 +92,10 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
         <div
           className="h-full bg-gradient-to-r from-cyan-500 via-blue-500 to-indigo-500 transition-all duration-500 ease-out"
           style={{ width: `${calculateProgress()}%` }}
-        ></div>
+        />
       </div>
 
-      {/* 5-Step Node Visualizer Cards */}
+      {/* User-Centric 5-Step Checklist */}
       <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
         {steps.map((step) => {
           const status = getStepStatus(step.id);
@@ -122,16 +106,16 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
               key={step.id}
               className={`p-3.5 rounded-2xl border transition-all relative ${
                 status === 'done'
-                  ? 'bg-slate-900/90 border-emerald-500/30'
+                  ? 'bg-slate-900/90 border-emerald-500/30 text-emerald-300'
                   : status === 'active'
-                  ? `${step.bg} ${step.border} shadow-lg shadow-cyan-500/10 ring-1 ring-cyan-500/30`
+                  ? 'bg-cyan-500/10 border-cyan-500/30 text-cyan-400 ring-1 ring-cyan-500/30 shadow-lg shadow-cyan-500/10'
                   : status === 'paused'
-                  ? 'bg-amber-500/10 border-amber-500/30'
-                  : 'bg-slate-950/60 border-slate-900 opacity-60'
+                  ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+                  : 'bg-slate-950/60 border-slate-900 opacity-60 text-slate-400'
               }`}
             >
               <div className="flex items-center justify-between mb-2">
-                <span className={`p-2 rounded-xl ${step.bg} ${step.color}`}>
+                <span className="p-2 rounded-xl bg-slate-800/80">
                   <Icon className="w-4 h-4" />
                 </span>
                 {status === 'done' && <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
@@ -139,7 +123,11 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
                 {status === 'paused' && <AlertCircle className="w-4 h-4 text-amber-400 animate-pulse" />}
               </div>
 
-              <h4 className="text-xs font-bold text-white line-clamp-1">{step.name}</h4>
+              <h4 className="text-xs font-bold text-white line-clamp-1 flex items-center gap-1.5">
+                {status === 'done' && <span className="text-emerald-400 font-bold">✓</span>}
+                {status === 'active' && <span className="text-cyan-400 font-bold">●</span>}
+                <span>{step.name}</span>
+              </h4>
               <p className="text-[10px] text-slate-400 mt-1 line-clamp-2 leading-relaxed">
                 {step.description}
               </p>
@@ -147,35 +135,6 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
           );
         })}
       </div>
-
-      {/* Live Agent Logs Stream */}
-      {agentLogs && agentLogs.length > 0 && (
-        <div className="bg-slate-950 p-4 rounded-2xl border border-slate-900 space-y-2">
-          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-b border-slate-900 pb-2">
-            <span>Live Node Event Stream</span>
-            <span className="text-cyan-400 font-bold">{agentLogs.length} Events Received</span>
-          </div>
-
-          <div className="space-y-2 max-h-36 overflow-y-auto scrollbar-thin text-xs">
-            {agentLogs.map((log, idx) => (
-              <div key={idx} className="flex items-start justify-between text-[11px] font-mono gap-2">
-                <span className="text-cyan-400 flex-shrink-0">[{log.timestamp}]</span>
-                <span className="text-slate-300 font-semibold flex-1">{log.agent}:</span>
-                <span className="text-slate-400 truncate">{log.details}</span>
-                <span
-                  className={`text-[9px] uppercase font-bold px-1.5 py-0.5 rounded ${
-                    log.status === 'PAUSED_FOR_HUMAN_INPUT'
-                      ? 'bg-amber-500/10 text-amber-400'
-                      : 'bg-emerald-500/10 text-emerald-400'
-                  }`}
-                >
-                  {log.status}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
     </div>
   );
 };

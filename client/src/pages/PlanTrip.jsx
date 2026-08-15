@@ -23,6 +23,8 @@ import {
   ListFilter,
   Wand2,
   X,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 
 export const PlanTrip = () => {
@@ -31,12 +33,12 @@ export const PlanTrip = () => {
 
   const [inputMode, setInputMode] = useState('wizard'); // 'wizard' | 'prompt'
   const [prompt, setPrompt] = useState('');
-  const [destination, setDestination] = useState('Manali');
+  const [destination, setDestination] = useState('Goa');
   const [startingCity, setStartingCity] = useState('Delhi');
-  const [duration, setDuration] = useState(5);
-  const [budget, setBudget] = useState(30000);
+  const [duration, setDuration] = useState(4);
+  const [budget, setBudget] = useState(25000);
   const [travelers, setTravelers] = useState(2);
-  const [travelStyle, setTravelStyle] = useState(user?.preferences?.travelStyle || 'Adventure');
+  const [travelStyle, setTravelStyle] = useState(user?.preferences?.travelStyle || 'Relaxed');
 
   const [analyzing, setAnalyzing] = useState(false);
   const [resuming, setResuming] = useState(false);
@@ -46,6 +48,8 @@ export const PlanTrip = () => {
   const [toastMessage, setToastMessage] = useState(null);
   const [activeAgentStep, setActiveAgentStep] = useState(1);
   const [isHITLModalOpen, setIsHITLModalOpen] = useState(false);
+
+  const popularDestinations = ['Goa', 'Manali', 'Jaipur', 'Ladakh'];
 
   useEffect(() => {
     if (searchParams.get('preset') === 'manali') {
@@ -76,7 +80,7 @@ export const PlanTrip = () => {
       setActiveAgentStep((prev) => (prev < 5 ? prev + 1 : prev));
     }, 600);
 
-    const currentDest = customData.destination || destination.trim() || 'Manali';
+    const currentDest = customData.destination || destination.trim() || 'Goa';
     const currentOrigin = customData.startingCity || startingCity.trim() || 'Delhi';
 
     try {
@@ -110,7 +114,7 @@ export const PlanTrip = () => {
 
   const handleAnalyzePrompt = (e) => {
     if (e) e.preventDefault();
-    const currentDest = destination.trim() || 'Manali';
+    const currentDest = destination.trim() || 'Goa';
     const currentOrigin = startingCity.trim() || 'Delhi';
     const activePrompt = (prompt.trim() && prompt.toLowerCase().includes(currentDest.toLowerCase()))
       ? prompt.trim()
@@ -136,8 +140,8 @@ export const PlanTrip = () => {
     setIsHITLModalOpen(false);
 
     const chosenDest = option.destination || destination || 'Goa';
-    const chosenBudget = option.budget || budget || 30000;
-    const chosenDuration = option.duration || duration || 5;
+    const chosenBudget = option.budget || budget || 25000;
+    const chosenDuration = option.duration || duration || 4;
 
     if (option.destination) setDestination(option.destination);
     if (option.budget) setBudget(option.budget);
@@ -218,7 +222,7 @@ export const PlanTrip = () => {
         </div>
       )}
 
-      {/* Day 15 HITL Interruption Modal */}
+      {/* Human-in-the-Loop Interruption Modal */}
       <HITLModal
         isOpen={isHITLModalOpen}
         onClose={() => setIsHITLModalOpen(false)}
@@ -228,27 +232,60 @@ export const PlanTrip = () => {
         isResuming={resuming}
       />
 
-      {/* Header Banner */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
-        <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 16: Error Resilience & Production Ready
-          </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-            Interactive Agentic Trip Planner Engine
-          </h1>
-          <p className="text-xs text-slate-400 mt-1">
-            LangGraph Pipeline: Requirement Analyzer ➔ RAG Qdrant Vector DB ➔ Budget Allocator ➔ Itinerary Planner ➔ 4 Validation Checks.
-          </p>
+      {/* Clean User-First Hero Header */}
+      <div className="glass-panel p-8 sm:p-10 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900/90 to-cyan-950/20 text-center space-y-4 relative overflow-hidden">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold">
+          <Sparkles className="w-4 h-4" /> AI-Powered Travel Planning
         </div>
 
-        {/* Input Mode Toggle */}
-        <div className="flex items-center p-1 rounded-2xl bg-slate-900 border border-slate-800 self-start md:self-auto">
+        <h1 className="text-3xl sm:text-5xl font-extrabold text-white tracking-tight">
+          Plan Your Next Adventure
+        </h1>
+
+        <p className="text-sm text-slate-300 max-w-xl mx-auto font-medium">
+          Personalized day-by-day itineraries, smart budget optimization, and real-time guidebook recommendations.
+        </p>
+
+        {/* Feature Highlights */}
+        <div className="flex flex-wrap items-center justify-center gap-4 text-xs font-semibold text-slate-400 pt-2 font-mono">
+          <span className="flex items-center gap-1.5 text-cyan-400"><Zap className="w-3.5 h-3.5" /> AI Planning</span>
+          <span>•</span>
+          <span className="flex items-center gap-1.5 text-emerald-400"><DollarSign className="w-3.5 h-3.5" /> Budget Optimization</span>
+          <span>•</span>
+          <span className="flex items-center gap-1.5 text-indigo-400"><Compass className="w-3.5 h-3.5" /> Smart Itinerary</span>
+        </div>
+      </div>
+
+      {/* Mode Switcher & Quick Destination Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 glass-panel p-4 px-6 rounded-2xl border border-slate-800">
+        <div className="flex items-center gap-2 overflow-x-auto">
+          <span className="text-xs font-semibold text-slate-400 flex-shrink-0">Popular Destinations:</span>
+          {popularDestinations.map((dest) => (
+            <button
+              key={dest}
+              onClick={() => {
+                setDestination(dest);
+                if (inputMode === 'prompt') {
+                  setPrompt(`Plan a 4 day trip to ${dest} from ${startingCity} under ₹${budget.toLocaleString()} for ${travelers} people`);
+                }
+              }}
+              className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                destination === dest
+                  ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                  : 'bg-slate-900 text-slate-300 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              [ {dest} ]
+            </button>
+          ))}
+        </div>
+
+        <div className="flex items-center p-1 rounded-xl bg-slate-900 border border-slate-800 self-start sm:self-auto">
           <button
             onClick={() => setInputMode('wizard')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
               inputMode === 'wizard'
-                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                ? 'bg-cyan-500 text-slate-950'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -256,9 +293,9 @@ export const PlanTrip = () => {
           </button>
           <button
             onClick={() => setInputMode('prompt')}
-            className={`flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
               inputMode === 'prompt'
-                ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/20'
+                ? 'bg-cyan-500 text-slate-950'
                 : 'text-slate-400 hover:text-white'
             }`}
           >
@@ -267,7 +304,7 @@ export const PlanTrip = () => {
         </div>
       </div>
 
-      {/* Real-Time Agent Execution Visualizer */}
+      {/* AI Planning Progress Visualizer */}
       <AgentVisualizer
         activeStep={activeAgentStep}
         agentLogs={analysisResult?.agentLogs}
@@ -276,7 +313,7 @@ export const PlanTrip = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Form (Wizard vs Quick Prompt) */}
+        {/* Left Column: Input Form (Wizard vs Quick Prompt) */}
         <div className="lg:col-span-5 space-y-6">
           {inputMode === 'wizard' ? (
             <MultiStepTripForm onSubmit={handleWizardSubmit} isLoading={analyzing || resuming} />
@@ -284,14 +321,14 @@ export const PlanTrip = () => {
             <form onSubmit={handleAnalyzePrompt} className="glass-panel p-6 rounded-3xl border border-slate-800 space-y-5">
               <div>
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
-                  <span>Natural Language Trip Prompt</span>
-                  <span className="text-[10px] text-cyan-400 font-mono">Gemini Dynamic Parser</span>
+                  <span>Where do you want to go?</span>
+                  <span className="text-[10px] text-cyan-400 font-mono">WanderWave AI</span>
                 </label>
                 <textarea
                   rows={3}
                   value={prompt}
                   onChange={(e) => setPrompt(e.target.value)}
-                  placeholder="e.g., I want to visit Manali for 5 days under 30000 for 2 people with trekking and cafes starting from Delhi..."
+                  placeholder="e.g., Plan a 4 day trip to Goa from Delhi under 25000 for 2 people with beaches and cafes..."
                   className="w-full p-3 glass-input rounded-2xl text-xs font-medium focus:ring-2 focus:ring-cyan-500/40 leading-relaxed"
                 />
               </div>
@@ -299,7 +336,7 @@ export const PlanTrip = () => {
               <div className="relative flex py-1 items-center">
                 <div className="flex-grow border-t border-slate-800"></div>
                 <span className="flex-shrink mx-3 text-[10px] uppercase font-mono tracking-wider text-slate-500">
-                  Or Quick Parameters
+                  Or Quick Details
                 </span>
                 <div className="flex-grow border-t border-slate-800"></div>
               </div>
@@ -360,17 +397,17 @@ export const PlanTrip = () => {
               <button
                 type="submit"
                 disabled={analyzing || resuming}
-                className="w-full py-3 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
+                className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-extrabold text-xs shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all disabled:opacity-50"
               >
                 {analyzing ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-cyan-200" />
-                    <span>Analyzing & Planning...</span>
+                    <RefreshCw className="w-4 h-4 animate-spin text-slate-950" />
+                    <span>Building Your Itinerary...</span>
                   </>
                 ) : (
                   <>
-                    <BrainCircuit className="w-4 h-4" />
-                    <span>Generate Day-by-Day Plan</span>
+                    <Sparkles className="w-4 h-4" />
+                    <span>Generate Trip Itinerary</span>
                     <ArrowRight className="w-4 h-4" />
                   </>
                 )}
@@ -379,7 +416,7 @@ export const PlanTrip = () => {
           )}
         </div>
 
-        {/* Right Column: Output / HITL Interruption Card / Dashboard */}
+        {/* Right Column: Star Generated Itinerary & Budget Chart */}
         <div className="lg:col-span-7 space-y-6">
           {error && (
             <div className="p-4 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-xs flex items-center gap-2">
@@ -388,7 +425,7 @@ export const PlanTrip = () => {
             </div>
           )}
 
-          {/* HITL Interruption Card */}
+          {/* HITL Choice Prompt */}
           {analysisResult?.requiresHumanInput && (
             <div className="glass-panel p-6 rounded-3xl border border-amber-500/30 bg-amber-500/5 space-y-5 animate-in fade-in duration-200">
               <div className="flex items-center gap-3 border-b border-amber-500/20 pb-4">
@@ -397,11 +434,11 @@ export const PlanTrip = () => {
                 </div>
                 <div>
                   <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[10px] font-mono font-bold uppercase mb-1">
-                    ⏸️ LangGraph Paused • Human-in-the-Loop Interruption
+                    ⏸️ Clarification Needed
                   </div>
-                  <h3 className="text-base font-bold text-white">Clarification Needed to Continue</h3>
+                  <h3 className="text-base font-bold text-white">Select Preference to Continue</h3>
                   <p className="text-xs text-amber-200/90 mt-0.5">
-                    {analysisResult.clarificationPrompt || 'Please select an option below to resume graph execution:'}
+                    {analysisResult.clarificationPrompt || 'Please select an option below to build your itinerary:'}
                   </p>
                 </div>
               </div>
@@ -440,9 +477,9 @@ export const PlanTrip = () => {
                 <Compass className="w-10 h-10 animate-pulse" />
               </div>
               <div>
-                <h3 className="text-base font-bold text-white">Agentic AI Trip Planner Ready</h3>
+                <h3 className="text-base font-bold text-white">Your Itinerary Will Appear Here</h3>
                 <p className="text-xs text-slate-400 mt-1 max-w-sm">
-                  Complete the guided wizard or enter your trip prompt to execute the LangGraph pipeline.
+                  Complete the quick wizard or enter a destination above to generate your timeline itinerary.
                 </p>
               </div>
             </div>
@@ -453,10 +490,10 @@ export const PlanTrip = () => {
               <RefreshCw className="w-10 h-10 text-cyan-400 animate-spin" />
               <div>
                 <h3 className="text-base font-bold text-white">
-                  {resuming ? 'Resuming LangGraph Execution...' : 'Executing Multi-Agent Pipeline...'}
+                  {resuming ? 'Resuming Execution...' : 'Building Your Personalized Itinerary...'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
-                  Requirement Analyzer ➔ RAG Qdrant Vector DB ➔ Budget Allocator ➔ Itinerary Planner ➔ Validator Node
+                  Understanding Preferences ➔ Finding Places ➔ Checking Weather ➔ Optimizing Budget ➔ Creating Itinerary
                 </p>
               </div>
             </div>
@@ -464,15 +501,15 @@ export const PlanTrip = () => {
 
           {analysisResult && !analysisResult.requiresHumanInput && !analyzing && !resuming && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* Day 14 Budget Allocation Visual Chart */}
-              <BudgetChart budgetBreakdown={analysisResult.budgetBreakdown} />
-
-              {/* Day 14 Interactive Itinerary Viewer */}
+              {/* STAR OF THE APPLICATION: The Timeline Itinerary Viewer */}
               <ItineraryViewer
                 itinerary={analysisResult.itinerary}
                 onSaveTrip={handleSaveTrip}
                 isSaving={isSaving}
               />
+
+              {/* Category Budget Allocation Breakdown */}
+              <BudgetChart budgetBreakdown={analysisResult.budgetBreakdown} />
             </div>
           )}
         </div>
