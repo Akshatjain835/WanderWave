@@ -22,6 +22,7 @@ import {
   CheckCircle2,
   ListFilter,
   Wand2,
+  X,
 } from 'lucide-react';
 
 export const PlanTrip = () => {
@@ -42,6 +43,7 @@ export const PlanTrip = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState(null);
+  const [toastMessage, setToastMessage] = useState(null);
   const [activeAgentStep, setActiveAgentStep] = useState(1);
   const [isHITLModalOpen, setIsHITLModalOpen] = useState(false);
 
@@ -54,6 +56,11 @@ export const PlanTrip = () => {
       setTravelers(2);
     }
   }, [searchParams]);
+
+  const showToast = (msg, type = 'success') => {
+    setToastMessage({ text: msg, type });
+    setTimeout(() => setToastMessage(null), 5000);
+  };
 
   const handleDestinationChange = (val) => {
     setDestination(val);
@@ -181,17 +188,36 @@ export const PlanTrip = () => {
         weatherForecast: analysisResult.weatherForecast || {},
       });
       if (saveRes.data.success) {
-        alert('🎉 Trip saved to your account successfully! View it under "My Trips".');
+        showToast('🎉 Trip saved to your WanderWave account! View it under "My Trips".', 'success');
       }
     } catch (err) {
-      alert(err.response?.data?.message || 'Error saving trip to database.');
+      showToast(err.response?.data?.message || 'Error saving trip to database.', 'error');
     } finally {
       setIsSaving(false);
     }
   };
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 relative">
+      {/* In-App Toast Notification Banner */}
+      {toastMessage && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 p-4 rounded-2xl border shadow-2xl backdrop-blur-md flex items-center justify-between gap-4 animate-in slide-in-from-bottom-5 duration-200 ${
+            toastMessage.type === 'success'
+              ? 'bg-emerald-950/90 border-emerald-500/40 text-emerald-300'
+              : 'bg-rose-950/90 border-rose-500/40 text-rose-300'
+          }`}
+        >
+          <div className="flex items-center gap-2.5 text-xs font-bold">
+            {toastMessage.type === 'success' ? <CheckCircle2 className="w-5 h-5 text-emerald-400" /> : <AlertTriangle className="w-5 h-5 text-rose-400" />}
+            <span>{toastMessage.text}</span>
+          </div>
+          <button onClick={() => setToastMessage(null)} className="p-1 text-slate-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
+
       {/* Day 15 HITL Interruption Modal */}
       <HITLModal
         isOpen={isHITLModalOpen}
@@ -206,7 +232,7 @@ export const PlanTrip = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <BrainCircuit className="w-3.5 h-3.5" /> Day 15: Human-in-the-Loop Modal & Trip History
+            <BrainCircuit className="w-3.5 h-3.5" /> Day 16: Error Resilience & Production Ready
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             Interactive Agentic Trip Planner Engine
