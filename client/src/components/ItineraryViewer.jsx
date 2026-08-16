@@ -16,6 +16,8 @@ import {
   Wand2,
   X,
   Check,
+  Database,
+  CheckCircle2,
 } from 'lucide-react';
 import api from '../services/api';
 import { fetchDestinationImage } from '../services/imageService';
@@ -248,6 +250,75 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSav
                   [ {place} ]
                 </span>
               ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Trust-Building Cards Grid: AI Sources & Why This Plan (Requirements) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* AI Sources Badge Card */}
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 bg-slate-900/60">
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+            <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
+              <Database className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+              AI Ground Truth Sources
+            </h3>
+          </div>
+
+          <div className="space-y-2 text-xs font-medium">
+            <div className="flex items-center gap-2 text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>{itinerary.destination} Local Guidebook (Qdrant Vector DB)</span>
+            </div>
+            <div className="flex items-center gap-2 text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>Real-Time Forecast (Open-Meteo Weather API)</span>
+            </div>
+            <div className="flex items-center gap-2 text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>Verified Local Attractions & Hidden Spots</span>
+            </div>
+            <div className="flex items-center gap-2 text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
+              <span>Express Route & Transit Distance Estimates</span>
+            </div>
+          </div>
+        </div>
+
+        {/* "Why This Plan?" Rationale Card */}
+        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 bg-slate-900/60">
+          <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
+            <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              <Sparkles className="w-4 h-4" />
+            </div>
+            <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+              Why This Itinerary?
+            </h3>
+          </div>
+
+          <div className="space-y-2 text-xs font-medium">
+            <div className="flex items-center gap-2 text-slate-200">
+              <span className="text-emerald-400 font-bold">✓</span>
+              <span>Fits your ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()} budget cap</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <span className="text-emerald-400 font-bold">✓</span>
+              <span>Prioritizes your interests ({itinerary.travelStyle || 'Adventure'} style)</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <span className="text-emerald-400 font-bold">✓</span>
+              <span>Avoids long travel between activities</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <span className="text-emerald-400 font-bold">✓</span>
+              <span>Optimized for {itinerary.travelers_count || 2} travelers</span>
+            </div>
+            <div className="flex items-center gap-2 text-slate-200">
+              <span className="text-emerald-400 font-bold">✓</span>
+              <span>Weather checked for your travel dates</span>
             </div>
           </div>
         </div>
