@@ -1,26 +1,68 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Calendar,
   Sun,
   Clock,
   Utensils,
   MapPin,
-  CheckCircle2,
   Bookmark,
-  Share2,
   Sparkles,
   CloudSun,
-  DollarSign,
   ChevronDown,
   ChevronUp,
   Compass,
   Navigation,
+  RefreshCw,
+  Wand2,
+  X,
+  Check,
 } from 'lucide-react';
+import api from '../services/api';
+import { fetchDestinationImage } from '../services/imageService';
 
-export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
+// Popular places tags by destination
+const DESTINATION_PLACES = {
+  goa: ['Baga Beach', 'Fort Aguada', 'Panjim', 'Dudhsagar Waterfalls', 'Anjuna Beach', 'Calangute'],
+  manali: ['Solang Valley', 'Rohtang Pass', 'Hadimba Temple', 'Old Manali Cafes', 'Jogini Waterfall'],
+  jaipur: ['Hawa Mahal', 'Amber Fort', 'City Palace', 'Jal Mahal', 'Chokhi Dhani'],
+  ladakh: ['Pangong Lake', 'Nubra Valley', 'Khardung La Pass', 'Magnetic Hill', 'Diskit Monastery'],
+  mysore: ['Mysore Palace', 'Chamundi Hill', 'Brindavan Gardens', 'St. Philomena Cathedral'],
+  kerala: ['Alleppey Backwaters', 'Munnar Tea Gardens', 'Varkala Cliff', 'Thekkady Sanctuary'],
+  dubai: ['Burj Khalifa', 'Dubai Mall', 'Desert Safari', 'Palm Jumeirah', 'Miracle Garden'],
+};
+
+export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSaving }) => {
+  const [itinerary, setItinerary] = useState(initialItinerary);
   const [expandedDays, setExpandedDays] = useState({});
+  const [coverImageUrl, setCoverImageUrl] = useState('');
+  
+  // Killer Feature State: Partial Day Regeneration Modal
+  const [activeRegenDay, setActiveRegenDay] = useState(null);
+  const [customFeedback, setCustomFeedback] = useState('');
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [toastNotice, setToastNotice] = useState(null);
+
+  useEffect(() => {
+    setItinerary(initialItinerary);
+  }, [initialItinerary]);
+
+  useEffect(() => {
+    if (itinerary?.destination) {
+      fetchDestinationImage(itinerary.destination).then((url) => {
+        setCoverImageUrl(url);
+      });
+    }
+  }, [itinerary?.destination]);
 
   if (!itinerary || !itinerary.days || itinerary.days.length === 0) return null;
+
+  const destKey = (itinerary.destination || '').toLowerCase();
+  const popularPlaces = DESTINATION_PLACES[destKey] || [
+    `${itinerary.destination} City Center`,
+    'Old Town Quarter',
+    'Sunset Point View',
+    'Local Crafts Market',
+  ];
 
   const toggleDayExpand = (dayNumber) => {
     setExpandedDays((prev) => ({
@@ -29,55 +71,189 @@ export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
     }));
   };
 
+  const handleRegenerateDaySubmit = async (feedbackText) => {
+    if (!activeRegenDay || !feedbackText) return;
+    setIsRegenerating(true);
+    try {
+      const response = await api.post('/trips/regenerate-day', {
+        dayNumber: activeRegenDay,
+        feedback: feedbackText,
+        currentItinerary: itinerary,
+        destination: itinerary.destination,
+        budget: itinerary.total_budget_cap_inr,
+      });
+
+      if (response.data.success && response.data.data?.itinerary) {
+        setItinerary(response.data.data.itinerary);
+        setToastNotice(`✨ Day ${activeRegenDay} successfully re-planned based on: "${feedbackText}"`);
+        setTimeout(() => setToastNotice(null), 5000);
+      }
+    } catch (err) {
+      console.error('Error regenerating day:', err);
+    } finally {
+      setIsRegenerating(false);
+      setActiveRegenDay(null);
+      setCustomFeedback('');
+    }
+  };
+
   return (
-    <div className="space-y-8 animate-in fade-in duration-200">
-      {/* Travel Planner Hero Banner */}
-      <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-slate-800 bg-gradient-to-br from-slate-900 via-slate-900/90 to-cyan-950/30 space-y-6 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="space-y-8 animate-in fade-in duration-200 relative">
+      {/* Toast Notice */}
+      {toastNotice && (
+        <div className="fixed bottom-6 right-6 z-50 p-4 rounded-2xl bg-cyan-950/90 border border-cyan-500/40 text-cyan-300 text-xs font-bold backdrop-blur-md shadow-2xl flex items-center justify-between gap-4 animate-in slide-in-from-bottom-4">
+          <span>{toastNotice}</span>
+          <button onClick={() => setToastNotice(null)} className="p-1 text-slate-400 hover:text-white">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
-          <div>
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-3">
-              <Sparkles className="w-3.5 h-3.5" /> AI Crafted Travel Itinerary
+      {/* Partial Day Regeneration Modal */}
+      {activeRegenDay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-500/30 max-w-lg w-full space-y-6 shadow-2xl relative bg-slate-900/90">
+            <button
+              onClick={() => setActiveRegenDay(null)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3">
+              <div className="p-3 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+                <Wand2 className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                  Partial Re-Planner Agent
+                </span>
+                <h3 className="text-lg font-extrabold text-white mt-1">
+                  Regenerate Day {activeRegenDay}
+                </h3>
+              </div>
             </div>
 
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-              {itinerary.destination || 'Your Adventure'}
-            </h1>
-
-            <div className="flex flex-wrap items-center gap-3 text-xs text-slate-300 font-medium mt-2">
-              <span className="flex items-center gap-1 text-cyan-300 font-bold">
-                <Calendar className="w-4 h-4 text-cyan-400" /> {itinerary.duration_days || itinerary.days.length} Days
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-slate-200 font-semibold">
-                👥 {itinerary.travelers_count || 2} Travelers
-              </span>
-              <span>•</span>
-              <span className="flex items-center gap-1 text-emerald-400 font-extrabold">
-                ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()} Budget Cap
-              </span>
-            </div>
-
-            <p className="text-xs text-slate-400 mt-2 font-mono">
-              From {itinerary.starting_city || 'Delhi'} • Est Total Spend: ₹{(itinerary.estimated_total_cost_inr || 21800).toLocaleString()}
+            <p className="text-xs text-slate-300">
+              How would you like WanderWave AI to adjust <strong className="text-cyan-300">Day {activeRegenDay}</strong>? Select a quick suggestion or enter custom instructions:
             </p>
+
+            {/* Quick Feedback Chips */}
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: '💰 Make it Cheaper', value: 'Make Day cheaper' },
+                { label: '🧗 More Adventurous', value: 'More adventurous trekking' },
+                { label: '☕ Relaxed Cafes & Food', value: 'Relaxed cafes and local food' },
+                { label: '🏖️ Remove Nightlife', value: 'Remove nightlife quiet evening' },
+              ].map((chip) => (
+                <button
+                  key={chip.label}
+                  onClick={() => handleRegenerateDaySubmit(chip.value)}
+                  disabled={isRegenerating}
+                  className="p-3 rounded-xl bg-slate-800/80 hover:bg-cyan-500/20 hover:border-cyan-500/40 text-xs font-bold text-slate-200 hover:text-cyan-300 border border-slate-700/80 text-left transition-all disabled:opacity-50 flex items-center justify-between"
+                >
+                  <span>{chip.label}</span>
+                  {isRegenerating ? <RefreshCw className="w-3.5 h-3.5 animate-spin text-cyan-400" /> : <Wand2 className="w-3.5 h-3.5 text-cyan-400/60" />}
+                </button>
+              ))}
+            </div>
+
+            {/* Custom Feedback Form */}
+            <div className="space-y-3 pt-2">
+              <label className="block text-xs font-semibold text-slate-400">
+                Or Type Custom Feedback:
+              </label>
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={customFeedback}
+                  onChange={(e) => setCustomFeedback(e.target.value)}
+                  placeholder="e.g. Add more beach sunset spots..."
+                  className="flex-1 p-3 glass-input rounded-xl text-xs font-medium"
+                />
+                <button
+                  onClick={() => handleRegenerateDaySubmit(customFeedback)}
+                  disabled={isRegenerating || !customFeedback.trim()}
+                  className="px-4 py-3 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs disabled:opacity-50 flex items-center gap-1.5"
+                >
+                  {isRegenerating ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4 stroke-[3]" />}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Large Immersive Destination Hero Cover Banner */}
+      <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-6 sm:p-8 bg-slate-950">
+        {coverImageUrl && (
+          <div
+            className="absolute inset-0 bg-cover bg-center transform hover:scale-105 transition-transform duration-700 pointer-events-none"
+            style={{ backgroundImage: `url(${coverImageUrl})` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none" />
+
+        {/* Floating Content Overlay */}
+        <div className="relative z-10 space-y-4">
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold uppercase backdrop-blur-md mb-2">
+                <Sparkles className="w-3.5 h-3.5" /> AI Generated Travel Plan
+              </span>
+              <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight uppercase drop-shadow-md">
+                {itinerary.destination || 'GOA'}
+              </h1>
+              <p className="text-sm sm:text-base font-semibold text-cyan-200 drop-shadow mt-1">
+                {itinerary.duration_days || 4} Day AI Generated Trip • {itinerary.starting_city ? `From ${itinerary.starting_city}` : 'Tailored Journey'}
+              </p>
+            </div>
+
+            {onSaveTrip && (
+              <button
+                onClick={onSaveTrip}
+                disabled={isSaving}
+                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-500/30 backdrop-blur-md disabled:opacity-50"
+              >
+                <Bookmark className="w-4.5 h-4.5" />
+                {isSaving ? 'Saving...' : 'Save Itinerary'}
+              </button>
+            )}
           </div>
 
-          {onSaveTrip && (
-            <button
-              onClick={onSaveTrip}
-              disabled={isSaving}
-              className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-500/25 disabled:opacity-50 self-start md:self-auto"
-            >
-              <Bookmark className="w-4.5 h-4.5" />
-              {isSaving ? 'Saving Trip...' : 'Save Itinerary'}
-            </button>
-          )}
+          {/* Quick Metrics Bar */}
+          <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-semibold text-slate-200 pt-2 font-mono">
+            <span className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-emerald-400 font-extrabold">
+              ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()} Budget
+            </span>
+            <span className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-cyan-300">
+              👥 {itinerary.travelers_count || 2} Travelers
+            </span>
+            <span className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-indigo-300">
+              ✨ {itinerary.travelStyle || 'Adventure'} Style
+            </span>
+          </div>
+
+          {/* Popular Places Chips */}
+          <div className="pt-2">
+            <span className="text-[11px] font-mono uppercase text-slate-400 block mb-2 font-semibold">
+              Popular Places Included:
+            </span>
+            <div className="flex flex-wrap items-center gap-2">
+              {popularPlaces.map((place) => (
+                <span
+                  key={place}
+                  className="px-3 py-1 rounded-xl bg-slate-900/90 hover:bg-slate-800 text-slate-200 text-xs font-semibold border border-slate-700/80 backdrop-blur-sm transition-all"
+                >
+                  [ {place} ]
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Day-by-Day Timeline Planner */}
+      {/* Day-by-Day Timeline Planner with Killer Feature: Regenerate This Day */}
       <div className="space-y-6">
         {itinerary.days.map((dayData) => {
           const isCollapsed = expandedDays[dayData.day_number];
@@ -87,10 +263,10 @@ export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
               key={dayData.day_number}
               className="glass-panel rounded-3xl border border-slate-800/90 overflow-hidden transition-all duration-200 hover:border-slate-700"
             >
-              {/* Day Header Banner (Matches Design: DAY 1 | ₹5,200) */}
+              {/* Day Header Banner */}
               <div
                 onClick={() => toggleDayExpand(dayData.day_number)}
-                className="p-5 sm:p-6 bg-slate-900/90 flex items-center justify-between cursor-pointer select-none border-b border-slate-800/80 hover:bg-slate-850 transition-all"
+                className="p-5 sm:p-6 bg-slate-900/90 flex items-center justify-between cursor-pointer select-none border-b border-slate-800/80 hover:bg-slate-850 transition-all flex-wrap gap-4"
               >
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 flex items-center justify-center text-white font-extrabold text-sm shadow-md shadow-cyan-500/20">
@@ -112,13 +288,26 @@ export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-4">
-                  <div className="text-right">
+                <div className="flex items-center gap-3">
+                  {/* Killer Feature Button: Regenerate This Day */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setActiveRegenDay(dayData.day_number);
+                    }}
+                    className="px-3.5 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-1.5 transition-all shadow-sm"
+                  >
+                    <RefreshCw className="w-3.5 h-3.5" />
+                    <span>Regenerate Day {dayData.day_number}</span>
+                  </button>
+
+                  <div className="text-right hidden sm:block">
                     <span className="text-[10px] font-mono uppercase text-slate-400 block">Est. Day Cost</span>
                     <span className="text-sm font-extrabold text-emerald-400">
                       ₹{(dayData.estimated_day_cost_inr || 5200).toLocaleString()}
                     </span>
                   </div>
+
                   <div className="p-2 rounded-xl bg-slate-800 text-slate-400">
                     {isCollapsed ? <ChevronDown className="w-4 h-4" /> : <ChevronUp className="w-4 h-4" />}
                   </div>
@@ -132,7 +321,6 @@ export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
                     {/* Morning Activity Slot */}
                     {dayData.morning && (
                       <div className="relative group">
-                        {/* Timeline Node Dot */}
                         <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-amber-400 ring-4 ring-slate-950 flex items-center justify-center shadow-md shadow-amber-400/30" />
 
                         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-amber-500/30 transition-all">
@@ -177,7 +365,6 @@ export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
                     {/* Afternoon Activity Slot */}
                     {dayData.afternoon && (
                       <div className="relative group">
-                        {/* Timeline Node Dot */}
                         <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-cyan-400 ring-4 ring-slate-950 flex items-center justify-center shadow-md shadow-cyan-400/30" />
 
                         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-cyan-500/30 transition-all">
@@ -222,7 +409,6 @@ export const ItineraryViewer = ({ itinerary, onSaveTrip, isSaving }) => {
                     {/* Evening Activity Slot */}
                     {dayData.evening && (
                       <div className="relative group">
-                        {/* Timeline Node Dot */}
                         <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-indigo-400 ring-4 ring-slate-950 flex items-center justify-center shadow-md shadow-indigo-400/30" />
 
                         <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-indigo-500/30 transition-all">

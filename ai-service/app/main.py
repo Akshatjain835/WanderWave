@@ -1,4 +1,5 @@
 import os
+import datetime
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -42,6 +43,13 @@ class ResumeRequest(BaseModel):
     travelers: Optional[int] = 2
     startingCity: Optional[str] = "Delhi"
     travelStyle: Optional[str] = "Adventure"
+
+class RegenerateDayRequest(BaseModel):
+    dayNumber: int
+    feedback: str
+    currentItinerary: Dict[str, Any]
+    destination: Optional[str] = "Goa"
+    budget: Optional[float] = 25000.0
 
 @app.get("/health")
 def health_check():
@@ -136,6 +144,107 @@ async def resume_trip(request: ResumeRequest):
         }
     except Exception as e:
         print("[Python AI-Service Resume Error]", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/graph/regenerate-day")
+async def regenerate_day(request: RegenerateDayRequest):
+    """
+    Partial Re-Planning Node: Regenerates ONLY a specific day based on targeted user feedback
+    without resetting or re-synthesizing the rest of the itinerary!
+    """
+    try:
+        day_num = request.dayNumber
+        fb = request.feedback.lower()
+        itin = dict(request.currentItinerary)
+        dest = request.destination or itin.get("destination", "Goa")
+        
+        days_list = list(itin.get("days", []))
+        updated_days = []
+
+        for d in days_list:
+            if d.get("day_number") == day_num:
+                # Apply targeted feedback transformation
+                m = dict(d.get("morning", {}))
+                a = dict(d.get("afternoon", {}))
+                e = dict(d.get("evening", {}))
+
+                if "cheaper" in fb or "budget" in fb:
+                    m["activity"] = f"Free Scenic Walk & Sunrise Point in {dest}"
+                    m["estimated_cost_inr"] = 0
+                    m["tips"] = "Budget tip: Free entry early morning spot."
+
+                    a["activity"] = f"Budget Street Food Sampling & Local Bazaar Walk"
+                    a["estimated_cost_inr"] = 150
+                    
+                    e["activity"] = f"Sunset Beach Promenade Stroll & Tea Stand"
+                    e["estimated_cost_inr"] = 50
+                    new_day_cost = 200
+
+                elif "adventurous" in fb or "adventure" in fb:
+                    m["activity"] = f"Thrilling Water Sports & Jet Skiing at {dest} Beach"
+                    m["estimated_cost_inr"] = 1200
+                    m["tips"] = "Book authorized water sport operators."
+
+                    a["activity"] = f"ATV Quad Bike Trail & Jungle Trek"
+                    a["estimated_cost_inr"] = 850
+                    
+                    e["activity"] = f"Evening Campfire & Beach Side Barbecue"
+                    e["estimated_cost_inr"] = 600
+                    new_day_cost = 2650
+
+                elif "relax" in fb or "cafe" in fb:
+                    m["activity"] = f"Cozy Cafe Breakfast & Artisan Coffee Tasting in {dest}"
+                    m["estimated_cost_inr"] = 350
+                    
+                    a["activity"] = f"Heritage Architecture Walk & Boutique Shopping"
+                    a["estimated_cost_inr"] = 400
+                    
+                    e["activity"] = f"Live Acoustic Music Session at Local Seaside Lounge"
+                    e["estimated_cost_inr"] = 500
+                    new_day_cost = 1250
+
+                elif "nightlife" in fb or "remove nightlife" in fb:
+                    e["activity"] = f"Peaceful Stargazing & Stroll at {dest} Main Promenade"
+                    e["estimated_cost_inr"] = 100
+                    e["tips"] = "Quiet & relaxing evening environment."
+                    new_day_cost = m.get("estimated_cost_inr", 150) + a.get("estimated_cost_inr", 300) + 100
+                else:
+                    m["activity"] = f"Refined Morning Exploration of {dest} Hidden Spots"
+                    a["activity"] = f"Local Heritage Experience & Culinary Delights"
+                    e["activity"] = f"Sunset View & Souvenir Shopping in {dest}"
+                    new_day_cost = d.get("estimated_day_cost_inr", 1500)
+
+                updated_days.append({
+                    "day_number": day_num,
+                    "title": f"Day {day_num}: {dest} Custom Re-Planned ({request.feedback})",
+                    "weather_snippet": d.get("weather_snippet", "Sunny & Pleasant | 25°C"),
+                    "morning": m,
+                    "afternoon": a,
+                    "evening": e,
+                    "estimated_day_cost_inr": new_day_cost
+                })
+            else:
+                updated_days.append(d)
+
+        itin["days"] = updated_days
+
+        log_entry = {
+            "agent": f"Partial Re-Planner Agent (Day {day_num})",
+            "status": "REGENERATED",
+            "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+            "details": f"Targeted partial re-planning applied to Day {day_num} based on user feedback: '{request.feedback}'."
+        }
+
+        return {
+            "success": True,
+            "message": f"Successfully regenerated Day {day_num} with partial feedback! 🔄",
+            "data": {
+                "itinerary": itin,
+                "logEntry": log_entry
+            }
+        }
+    except Exception as e:
+        print("[Partial Re-Planner Error]", e)
         raise HTTPException(status_code=500, detail=str(e))
 
 if __name__ == "__main__":

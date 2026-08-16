@@ -2,6 +2,7 @@ import express from 'express';
 import {
   analyzeTripRequest,
   resumeTripRequest,
+  regenerateDay,
   saveTrip,
   getUserTrips,
   getTripById,
@@ -14,6 +15,7 @@ const router = express.Router();
 
 router.post('/analyze', protect, analyzeTripRequest);
 router.post('/resume', protect, resumeTripRequest);
+router.post('/regenerate-day', protect, regenerateDay);
 
 router.route('/')
   .post(protect, saveTrip)

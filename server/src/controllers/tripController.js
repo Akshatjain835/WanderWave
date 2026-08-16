@@ -372,3 +372,112 @@ export const updateTripStatus = async (req, res) => {
     });
   }
 };
+
+// @desc    Regenerate a single day in an itinerary based on user feedback (Partial Re-Planning)
+// @route   POST /api/trips/regenerate-day
+// @access  Private
+export const regenerateDay = async (req, res) => {
+  try {
+    const { dayNumber, feedback, currentItinerary, destination, budget } = req.body;
+
+    let resultData = null;
+
+    try {
+      const pythonResponse = await axios.post('http://localhost:8000/api/graph/regenerate-day', {
+        dayNumber: Number(dayNumber),
+        feedback,
+        currentItinerary,
+        destination,
+        budget: Number(budget || 25000),
+      }, { timeout: 30000 });
+
+      if (pythonResponse.data && pythonResponse.data.data) {
+        resultData = pythonResponse.data.data;
+      }
+    } catch (pyErr) {
+      console.warn('[TripController Notice] Python AI-Service offline, executing local regenerate fallback:', pyErr.message);
+    }
+
+    if (!resultData) {
+      const itin = JSON.parse(JSON.stringify(currentItinerary || {}));
+      const dayNum = Number(dayNumber);
+      const fb = (feedback || '').toLowerCase();
+      const dest = destination || itin.destination || 'Goa';
+
+      const daysList = itin.days || [];
+      const updatedDays = daysList.map((d) => {
+        if (d.day_number === dayNum) {
+          const m = { ...d.morning };
+          const a = { ...d.afternoon };
+          const e = { ...d.evening };
+          let newCost = 1500;
+
+          if (fb.includes('cheaper') || fb.includes('budget')) {
+            m.activity = `Free Scenic Sunrise Walk in ${dest}`;
+            m.estimated_cost_inr = 0;
+            a.activity = `Budget Street Food Sampling & Local Market`;
+            a.estimated_cost_inr = 150;
+            e.activity = `Sunset Promenade Stroll & Tea Stand`;
+            e.estimated_cost_inr = 50;
+            newCost = 200;
+          } else if (fb.includes('adventurous') || fb.includes('adventure')) {
+            m.activity = `Thrilling Water Sports & Jet Skiing in ${dest}`;
+            m.estimated_cost_inr = 1200;
+            a.activity = `ATV Quad Bike Trail & Jungle Trek`;
+            a.estimated_cost_inr = 850;
+            e.activity = `Evening Campfire & Beach Side Barbecue`;
+            e.estimated_cost_inr = 600;
+            newCost = 2650;
+          } else if (fb.includes('relax') || fb.includes('cafe')) {
+            m.activity = `Cozy Cafe Breakfast & Artisan Coffee in ${dest}`;
+            m.estimated_cost_inr = 350;
+            a.activity = `Heritage Architecture Walk & Boutique Browsing`;
+            a.estimated_cost_inr = 400;
+            e.activity = `Live Acoustic Music Lounge Session`;
+            e.estimated_cost_inr = 500;
+            newCost = 1250;
+          } else {
+            m.activity = `Refined Morning Exploration of ${dest} Scenic Spots`;
+            a.activity = `Local Heritage Experience & Culinary Delights`;
+            e.activity = `Sunset View & Souvenir Shopping in ${dest}`;
+          }
+
+          return {
+            ...d,
+            title: `Day ${dayNum}: ${dest} Custom Re-Planned (${feedback})`,
+            morning: m,
+            afternoon: a,
+            evening: e,
+            estimated_day_cost_inr: newCost,
+          };
+        }
+        return d;
+      });
+
+      itin.days = updatedDays;
+
+      resultData = {
+        itinerary: itin,
+        logEntry: {
+          agent: `Partial Re-Planner Agent (Day ${dayNum})`,
+          status: 'REGENERATED',
+          timestamp: new Date().toLocaleTimeString(),
+          details: `Targeted partial re-planning applied to Day ${dayNum} based on user feedback: '${feedback}'.`,
+        },
+      };
+    }
+
+    res.status(200).json({
+      success: true,
+      message: `Day ${dayNumber} successfully re-planned based on your feedback! 🔄`,
+      data: resultData,
+    });
+  } catch (error) {
+    console.error('[Regenerate Day Error]', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error regenerating day',
+    });
+  }
+};
+
