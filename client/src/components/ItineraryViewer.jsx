@@ -33,12 +33,12 @@ const DESTINATION_PLACES = {
   dubai: ['Burj Khalifa', 'Dubai Mall', 'Desert Safari', 'Palm Jumeirah', 'Miracle Garden'],
 };
 
-export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSaving }) => {
+export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onItineraryUpdate, isSaving }) => {
   const [itinerary, setItinerary] = useState(initialItinerary);
   const [expandedDays, setExpandedDays] = useState({});
   const [coverImageUrl, setCoverImageUrl] = useState('');
   
-  // Killer Feature State: Partial Day Regeneration Modal
+  // Partial Day Regeneration Modal State
   const [activeRegenDay, setActiveRegenDay] = useState(null);
   const [customFeedback, setCustomFeedback] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
@@ -86,7 +86,12 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSav
       });
 
       if (response.data.success && response.data.data?.itinerary) {
-        setItinerary(response.data.data.itinerary);
+        const newItin = response.data.data.itinerary;
+        const newLog = response.data.data.logEntry;
+        setItinerary(newItin);
+        if (onItineraryUpdate) {
+          onItineraryUpdate(newItin, newLog);
+        }
         setToastNotice(`✨ Day ${activeRegenDay} successfully re-planned based on: "${feedbackText}"`);
         setTimeout(() => setToastNotice(null), 5000);
       }
@@ -140,13 +145,14 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSav
               How would you like WanderWave AI to adjust <strong className="text-cyan-300">Day {activeRegenDay}</strong>? Select a quick suggestion or enter custom instructions:
             </p>
 
-            {/* Quick Feedback Chips */}
+            {/* Quick Feedback Chips (5 Exact Options) */}
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: '💰 Make it Cheaper', value: 'Make Day cheaper' },
-                { label: '🧗 More Adventurous', value: 'More adventurous trekking' },
-                { label: '☕ Relaxed Cafes & Food', value: 'Relaxed cafes and local food' },
-                { label: '🏖️ Remove Nightlife', value: 'Remove nightlife quiet evening' },
+                { label: '💰 Cheaper', value: 'Cheaper budget option' },
+                { label: '🧗 More adventurous', value: 'More adventurous trekking' },
+                { label: '☕ More relaxed', value: 'More relaxed cafes and food' },
+                { label: '🏛️ More sightseeing', value: 'More sightseeing and heritage' },
+                { label: '🚗 Less travel', value: 'Less travel nearby walking spots' },
               ].map((chip) => (
                 <button
                   key={chip.label}
@@ -255,7 +261,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSav
         </div>
       </div>
 
-      {/* Trust-Building Cards Grid: AI Sources & Why This Plan (Requirements) */}
+      {/* Trust-Building Cards Grid: AI Sources & Why This Plan */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* AI Sources Badge Card */}
         <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 bg-slate-900/60">
@@ -324,7 +330,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSav
         </div>
       </div>
 
-      {/* Day-by-Day Timeline Planner with Killer Feature: Regenerate This Day */}
+      {/* Day-by-Day Timeline Planner */}
       <div className="space-y-6">
         {itinerary.days.map((dayData) => {
           const isCollapsed = expandedDays[dayData.day_number];
@@ -360,7 +366,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, isSav
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* Killer Feature Button: Regenerate This Day */}
+                  {/* Regenerate This Day Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

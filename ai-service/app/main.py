@@ -192,7 +192,7 @@ async def regenerate_day(request: RegenerateDayRequest):
                     e["estimated_cost_inr"] = 600
                     new_day_cost = 2650
 
-                elif "relax" in fb or "cafe" in fb:
+                elif "relaxed" in fb or "relax" in fb or "cafe" in fb:
                     m["activity"] = f"Cozy Cafe Breakfast & Artisan Coffee Tasting in {dest}"
                     m["estimated_cost_inr"] = 350
                     
@@ -203,11 +203,29 @@ async def regenerate_day(request: RegenerateDayRequest):
                     e["estimated_cost_inr"] = 500
                     new_day_cost = 1250
 
-                elif "nightlife" in fb or "remove nightlife" in fb:
-                    e["activity"] = f"Peaceful Stargazing & Stroll at {dest} Main Promenade"
-                    e["estimated_cost_inr"] = 100
-                    e["tips"] = "Quiet & relaxing evening environment."
-                    new_day_cost = m.get("estimated_cost_inr", 150) + a.get("estimated_cost_inr", 300) + 100
+                elif "sightseeing" in fb or "heritage" in fb:
+                    m["activity"] = f"Guided Morning Sightseeing at Iconic {dest} Forts & Temples"
+                    m["estimated_cost_inr"] = 300
+                    m["tips"] = "Hire an official local guide for historical insights."
+
+                    a["activity"] = f"Museum Visit & Royal Palace Heritage Tour"
+                    a["estimated_cost_inr"] = 450
+
+                    e["activity"] = f"Cultural Folk Dance Show & Traditional Dinner"
+                    e["estimated_cost_inr"] = 650
+                    new_day_cost = 1400
+
+                elif "less travel" in fb or "compact" in fb or "nearby" in fb:
+                    m["activity"] = f"Relaxed Morning Walking Tour within {dest} Hotel Quarter"
+                    m["estimated_cost_inr"] = 150
+                    m["tips"] = "Everything is within 5 minutes walking distance."
+
+                    a["activity"] = f"Adjacent Local Market & Craft Workshop"
+                    a["estimated_cost_inr"] = 250
+
+                    e["activity"] = f"Neighborhood Rooftop Dining & Sunset View"
+                    e["estimated_cost_inr"] = 400
+                    new_day_cost = 800
                 else:
                     m["activity"] = f"Refined Morning Exploration of {dest} Hidden Spots"
                     a["activity"] = f"Local Heritage Experience & Culinary Delights"

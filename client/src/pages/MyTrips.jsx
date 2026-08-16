@@ -103,7 +103,7 @@ export const MyTrips = () => {
   };
 
   const handleForkTrip = (trip) => {
-    navigate(`/plan-trip?destination=${encodeURIComponent(trip.destination)}&budget=${trip.budget}&duration=${trip.duration}`);
+    navigate(`/plan?destination=${encodeURIComponent(trip.destination)}&budget=${trip.budget}&duration=${trip.duration}&travelers=${trip.travelers}`);
   };
 
   const getStatusBadge = (status) => {
@@ -123,7 +123,7 @@ export const MyTrips = () => {
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-6 rounded-3xl border border-slate-800">
         <div>
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-            <Compass className="w-3.5 h-3.5" /> Day 15: Trip History, Exports & Fork Re-Plan
+            <Compass className="w-3.5 h-3.5" /> Saved AI Itineraries
           </div>
           <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
             My Saved AI Trips ({trips.length})
@@ -134,7 +134,7 @@ export const MyTrips = () => {
         </div>
 
         <Link
-          to="/plan-trip"
+          to="/plan"
           className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs shadow-lg shadow-cyan-500/20 flex items-center gap-2 transition-all self-start md:self-auto"
         >
           <Plus className="w-4 h-4" /> Plan New AI Trip

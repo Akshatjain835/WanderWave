@@ -428,7 +428,7 @@ export const regenerateDay = async (req, res) => {
             e.activity = `Evening Campfire & Beach Side Barbecue`;
             e.estimated_cost_inr = 600;
             newCost = 2650;
-          } else if (fb.includes('relax') || fb.includes('cafe')) {
+          } else if (fb.includes('relaxed') || fb.includes('relax') || fb.includes('cafe')) {
             m.activity = `Cozy Cafe Breakfast & Artisan Coffee in ${dest}`;
             m.estimated_cost_inr = 350;
             a.activity = `Heritage Architecture Walk & Boutique Browsing`;
@@ -436,6 +436,22 @@ export const regenerateDay = async (req, res) => {
             e.activity = `Live Acoustic Music Lounge Session`;
             e.estimated_cost_inr = 500;
             newCost = 1250;
+          } else if (fb.includes('sightseeing') || fb.includes('heritage')) {
+            m.activity = `Guided Morning Sightseeing at Iconic ${dest} Forts & Temples`;
+            m.estimated_cost_inr = 300;
+            a.activity = `Museum Visit & Royal Palace Heritage Tour`;
+            a.estimated_cost_inr = 450;
+            e.activity = `Cultural Folk Dance Show & Traditional Dinner`;
+            e.estimated_cost_inr = 650;
+            newCost = 1400;
+          } else if (fb.includes('less travel') || fb.includes('compact') || fb.includes('nearby')) {
+            m.activity = `Relaxed Morning Walking Tour within ${dest} Hotel Quarter`;
+            m.estimated_cost_inr = 150;
+            a.activity = `Adjacent Local Market & Craft Workshop`;
+            a.estimated_cost_inr = 250;
+            e.activity = `Neighborhood Rooftop Dining & Sunset View`;
+            e.estimated_cost_inr = 400;
+            newCost = 800;
           } else {
             m.activity = `Refined Morning Exploration of ${dest} Scenic Spots`;
             a.activity = `Local Heritage Experience & Culinary Delights`;

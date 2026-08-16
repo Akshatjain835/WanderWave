@@ -19,7 +19,7 @@ export const BudgetChart = ({ budgetBreakdown }) => {
   if (!budgetBreakdown) return null;
 
   const total = Number(budgetBreakdown.total_budget) || 25000;
-  
+
   // Base category amounts
   const rawStay = Number(budgetBreakdown.accommodation_stay) || 8000;
   const stay = suggestionApplied ? Math.max(4000, rawStay - 2000) : rawStay;

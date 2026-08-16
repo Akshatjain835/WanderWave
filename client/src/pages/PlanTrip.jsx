@@ -52,7 +52,18 @@ export const PlanTrip = () => {
   const popularDestinations = ['Goa', 'Manali', 'Jaipur', 'Ladakh'];
 
   useEffect(() => {
-    if (searchParams.get('preset') === 'manali') {
+    const destParam = searchParams.get('destination');
+    const budgetParam = searchParams.get('budget');
+    const durationParam = searchParams.get('duration');
+    const travelersParam = searchParams.get('travelers');
+
+    if (destParam) {
+      setDestination(destParam);
+      if (budgetParam) setBudget(Number(budgetParam));
+      if (durationParam) setDuration(Number(durationParam));
+      if (travelersParam) setTravelers(Number(travelersParam));
+      setPrompt(`Fork & Re-Plan: Plan a ${durationParam || 4} day trip to ${destParam} under ₹${Number(budgetParam || 25000).toLocaleString()}`);
+    } else if (searchParams.get('preset') === 'manali') {
       setPrompt('I want to visit Manali for 5 days under 30000 for 2 people with trekking and cafes from Delhi');
       setDestination('Manali');
       setDuration(5);
@@ -505,6 +516,13 @@ export const PlanTrip = () => {
               <ItineraryViewer
                 itinerary={analysisResult.itinerary}
                 onSaveTrip={handleSaveTrip}
+                onItineraryUpdate={(newItin, newLog) => {
+                  setAnalysisResult((prev) => ({
+                    ...prev,
+                    itinerary: newItin,
+                    agentLogs: newLog ? [...(prev?.agentLogs || []), newLog] : (prev?.agentLogs || []),
+                  }));
+                }}
                 isSaving={isSaving}
               />
 
