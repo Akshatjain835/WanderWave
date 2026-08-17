@@ -43,6 +43,9 @@ async def planner_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     weather = state.get("weather_forecast", {})
     budget_breakdown = state.get("budget_breakdown", {})
 
+    validation_issues = state.get("validation_issues", [])
+    retry_count = state.get("retry_count", 0)
+
     api_key = os.getenv("GEMINI_API_KEY", "")
     itinerary_output = None
 
@@ -59,6 +62,16 @@ async def planner_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
             place_names = [p.get('name') for p in places if p.get('name')]
             place_context_str = ", ".join(place_names) if place_names else f"top attractions in {destination}"
 
+            feedback_instruction = ""
+            if validation_issues:
+                feedback_instruction = f"""
+RE-PLANNING FEEDBACK FROM VALIDATOR AGENT (Iter #{retry_count}):
+The previous draft contained the following violations that MUST be resolved:
+{chr(10).join(f"- {issue}" for issue in validation_issues)}
+
+Adjust your itinerary to strictly fix these issues (e.g. reduce activity costs if over budget, swap outdoor activities to indoor museum/gallery visits if rainy, and ensure no repeated locations).
+                """
+
             prompt = f"""
 System Role: You are the Lead Itinerary Planner Agent in WanderWave's Agentic AI Trip Planner.
 Your task is to generate a custom, realistic, authentic Day-by-Day JSON itinerary for ANY trip worldwide using LangGraph state context.
@@ -73,6 +86,7 @@ State Context:
 - User Interests: {', '.join(interests)}
 - Specific Researched Attractions: {place_context_str}
 - Budget Category Caps: Stay: ₹{budget_breakdown.get('accommodation_stay', 0)}, Transit: ₹{budget_breakdown.get('transportation', 0)}, Meals: ₹{budget_breakdown.get('food_and_meals', 0)}, Activities: ₹{budget_breakdown.get('activities_and_sightseeing', 0)}
+{feedback_instruction}
 
 CRITICAL INSTRUCTIONS:
 1. Every single day (Day 1 to Day {duration}) MUST have distinct, non-repeating attractions and activities specific to {destination}.
@@ -88,17 +102,20 @@ CRITICAL INSTRUCTIONS:
         days_plan = []
         daily_forecasts = weather.get("forecast_days", [])
         
-        # Ensure we have at least 12 distinct place objects
         if not places:
             from app.graph.tools.places_tool import get_places_and_attractions
             places = get_places_and_attractions(destination, interests, travel_style)
 
         num_places = len(places)
+        outdoor_keywords = ["trek", "waterfall", "beach", "safari", "viewpoint", "outdoor", "boating", "hill", "garden", "park", "sports"]
+        rain_keywords = ["rain", "storm", "shower", "thunderstorm", "downpour"]
 
         for day in range(1, duration + 1):
             day_w = daily_forecasts[day - 1] if day - 1 < len(daily_forecasts) else {"condition": "Sunny & Clear", "temp_max_c": 24}
-            
-            # Select 3 unique places per day
+            condition_str = (day_w.get("condition", "") or "").lower()
+            is_rainy_day = any(rk in condition_str for rk in rain_keywords)
+
+            # Unique place slots
             idx_m = (day * 3 - 3) % num_places
             idx_a = (day * 3 - 2) % num_places
             idx_e = (day * 3 - 1) % num_places
@@ -114,27 +131,43 @@ CRITICAL INSTRUCTIONS:
             a_cost = spot_a.get("estimated_cost_per_person", round((budget * 0.08) / duration, 2))
             e_cost = spot_e.get("estimated_cost_per_person", round((budget * 0.08) / duration, 2))
 
+            m_act = f"Arrival, Check-in & Visit to {spot_m.get('name')}" if is_first else f"Morning Tour: {spot_m.get('name')} - {spot_m.get('description', 'Historic landmark exploration')}"
+            a_act = f"Afternoon Visit: {spot_a.get('name')} - {spot_a.get('description', 'Local cultural walk and food tasting')}"
+            e_act = f"Evening Excursion: {spot_e.get('name')} - {spot_e.get('description', 'Sunset view and evening stroll')}"
+
+            # Re-Planner Fix: Swap outdoor activities to indoor museum/cafes on rainy days
+            if is_rainy_day:
+                if any(ok in m_act.lower() for ok in outdoor_keywords):
+                    m_act = f"Indoor Museum & Heritage Gallery Visit (Rainy Day Alternate)"
+                    m_cost = 100
+                if any(ok in a_act.lower() for ok in outdoor_keywords):
+                    a_act = f"Artisan Coffee & Covered Handicraft Market Walk"
+                    a_cost = 150
+                if any(ok in e_act.lower() for ok in outdoor_keywords):
+                    e_act = f"Local Cultural Performance & Indoor Dining"
+                    e_cost = 250
+
             days_plan.append({
                 "day_number": day,
                 "title": f"Day {day}: Arrival & {spot_m.get('name')} Exploration" if is_first else f"Day {day}: Discover {spot_m.get('name')} & {spot_a.get('name')}" if not is_last else f"Day {day}: Final Sightseeing at {spot_m.get('name')} & Departure",
                 "weather_snippet": f"{day_w.get('condition', 'Sunny & Clear')} | Max {day_w.get('temp_max_c', 24)}°C",
                 "morning": {
                     "time": "09:00 AM - 12:30 PM",
-                    "activity": f"Arrival, Check-in & Visit to {spot_m.get('name')}" if is_first else f"Morning Tour: {spot_m.get('name')} - {spot_m.get('description', 'Historic landmark exploration')}",
+                    "activity": m_act,
                     "location": f"{spot_m.get('name')}, {destination}",
                     "estimated_cost_inr": m_cost,
                     "tips": "Check in early and start with morning quiet hours." if is_first else f"Recommended for {spot_m.get('category', 'Sightseeing')}."
                 },
                 "afternoon": {
                     "time": "01:30 PM - 04:30 PM",
-                    "activity": f"Afternoon Visit: {spot_a.get('name')} - {spot_a.get('description', 'Local cultural walk and food tasting')}",
+                    "activity": a_act,
                     "location": f"{spot_a.get('name')}, {destination}",
                     "estimated_cost_inr": a_cost,
                     "tips": f"Explore regional specialties and local culture at {spot_a.get('name')}."
                 },
                 "evening": {
                     "time": "06:00 PM - 09:00 PM",
-                    "activity": f"Evening Excursion: {spot_e.get('name')} - {spot_e.get('description', 'Sunset view and evening stroll')}",
+                    "activity": e_act,
                     "location": f"{spot_e.get('name')}, {destination}",
                     "estimated_cost_inr": e_cost,
                     "tips": f"Enjoy evening lighting and street atmosphere at {spot_e.get('name')}."
@@ -156,10 +189,10 @@ CRITICAL INSTRUCTIONS:
         final_itinerary = itinerary_output.model_dump()
 
     log_entry = {
-        "agent": "Itinerary Planner Agent (LLM Dynamic Planner)",
+        "agent": "Itinerary Planner Agent (LLM Dynamic Planner)" if not retry_count else f"Itinerary Planner Agent (Re-Planner Iteration #{retry_count})",
         "status": "SUCCESS",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Generated LLM-driven Day-by-Day itinerary ({duration} Days for {destination}, total cost estimate INR {final_itinerary.get('estimated_total_cost_inr', budget):,.0f})."
+        "details": f"Generated Day-by-Day itinerary ({duration} Days for {destination}, total cost estimate INR {final_itinerary.get('estimated_total_cost_inr', budget):,.0f})." if not retry_count else f"Re-planned itinerary to resolve validator issues: {', '.join(validation_issues[:2])}"
     }
 
     existing_logs = state.get("agent_logs", [])

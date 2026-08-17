@@ -393,14 +393,14 @@ export const PlanTrip = () => {
 
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 mb-1 flex items-center gap-1">
-                    <DollarSign className="w-3.5 h-3.5 text-cyan-400" /> Budget (₹ INR)
+                    <span className="font-black text-emerald-400 font-mono text-sm">₹</span> Budget (₹ INR)
                   </label>
                   <input
                     type="number"
                     step={1000}
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
-                    className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
+                    className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium font-mono text-emerald-300"
                   />
                 </div>
               </div>

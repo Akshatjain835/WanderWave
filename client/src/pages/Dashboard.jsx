@@ -15,22 +15,19 @@ import {
   Clock,
   Briefcase,
   Users,
+  CheckCircle2,
+  Brain,
+  CloudSun,
+  ShieldCheck,
+  TrendingUp,
 } from 'lucide-react';
 
 export const Dashboard = () => {
   const { user } = useAuth();
   const [userTrips, setUserTrips] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [upcomingCoverImg, setUpcomingCoverImg] = useState('');
+  const [heroCoverImg, setHeroCoverImg] = useState('');
   const [recentCityImages, setRecentCityImages] = useState({});
-
-  // Time of day greeting generator
-  const getGreeting = () => {
-    const hour = new Date().getHours();
-    if (hour < 12) return 'Good morning';
-    if (hour < 18) return 'Good afternoon';
-    return 'Good evening';
-  };
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -48,23 +45,8 @@ export const Dashboard = () => {
     fetchTrips();
   }, []);
 
-  const upcomingTrip = userTrips[0] || {
-    _id: 'default-goa',
-    destination: 'Goa',
-    duration: 4,
-    travelers: 2,
-    budget: 25000,
-    travelStyle: 'Relaxed',
-    dateRange: 'Oct 12 – Oct 15',
-  };
-
   useEffect(() => {
-    if (upcomingTrip?.destination) {
-      fetchDestinationImage(upcomingTrip.destination).then((url) => setUpcomingCoverImg(url));
-    }
-  }, [upcomingTrip?.destination]);
-
-  useEffect(() => {
+    fetchDestinationImage('Goa').then((url) => setHeroCoverImg(url));
     const cities = ['Goa', 'Jaipur', 'Manali'];
     cities.forEach((city) => {
       fetchDestinationImage(city).then((url) => {
@@ -73,84 +55,93 @@ export const Dashboard = () => {
     });
   }, []);
 
-  // Travel Stats calculation
-  const totalTripsCount = Math.max(12, userTrips.length);
-  const totalSpendPlanned = userTrips.length > 0 
-    ? userTrips.reduce((acc, curr) => acc + (curr.budget || 0), 0)
-    : 120000;
-  const uniqueDestinations = Math.max(8, new Set(userTrips.map(t => t.destination)).size);
-  const totalDaysTraveled = Math.max(24, userTrips.reduce((acc, curr) => acc + (curr.duration || 0), 0));
+  const totalTripsCount = userTrips.length;
+  const totalSpendPlanned = userTrips.reduce((acc, curr) => acc + (curr.budget || 0), 0);
+  const uniqueDestinations = new Set(userTrips.map(t => t.destination)).size;
+  const totalDaysTraveled = userTrips.reduce((acc, curr) => acc + (curr.duration || 0), 0);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-10">
-      {/* 1. Header: Greeting & Primary Action Button */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-        <div>
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight">
-            {getGreeting()}, <span className="text-cyan-400">{user?.name || 'Akshat'}</span> 👋
-          </h1>
-          <p className="text-sm text-slate-400 mt-1 font-medium">
-            Where are we going next?
-          </p>
-        </div>
-
-        <Link
-          to="/plan"
-          className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-extrabold text-xs shadow-xl shadow-cyan-500/25 flex items-center justify-center gap-2 transition-all hover:scale-[1.02] self-start md:self-auto"
-        >
-          <Plus className="w-4 h-4 stroke-[3]" />
-          <span>Plan New Trip</span>
-        </Link>
-      </div>
-
-      {/* 2. Upcoming Trip Feature Card with Dynamic Cover Image */}
-      <div className="space-y-3">
-        <h2 className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider">
-          Upcoming Trip
-        </h2>
-
-        <div className="relative rounded-3xl overflow-hidden glass-panel border border-slate-800 bg-slate-900/80 min-h-[220px] flex flex-col md:flex-row items-stretch justify-between group hover:border-slate-700 transition-all">
+    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
+      {/* Change 1 — Premium Hero Banner */}
+      <div className="relative rounded-3xl overflow-hidden glass-panel border border-slate-800 bg-slate-950 p-8 sm:p-12 min-h-[380px] flex flex-col justify-between shadow-2xl">
+        {heroCoverImg && (
           <div
-            className="md:w-1/2 min-h-[180px] bg-cover bg-center relative"
-            style={{
-              backgroundImage: upcomingCoverImg ? `url(${upcomingCoverImg})` : undefined,
-            }}
-          >
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-slate-950/40 to-slate-950 md:block hidden" />
-            <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent md:hidden" />
+            className="absolute inset-0 bg-cover bg-center opacity-30 transform hover:scale-105 transition-transform duration-1000 pointer-events-none"
+            style={{ backgroundImage: `url(${heroCoverImg})` }}
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-transparent pointer-events-none" />
+
+        <div className="relative z-10 max-w-2xl space-y-6">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 text-xs font-mono font-bold tracking-wide">
+            <Sparkles className="w-4 h-4 text-cyan-400" /> WANDERWAVE AI ENGINE
           </div>
 
-          <div className="p-6 md:p-8 md:w-1/2 flex flex-col justify-between space-y-4">
-            <div>
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-semibold mb-2">
-                🏝️ Next Destination
+          <div className="space-y-2">
+            <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight leading-none">
+              Plan smarter.<br />
+              <span className="bg-gradient-to-r from-cyan-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent">
+                Travel better.
               </span>
-              <h3 className="text-2xl sm:text-3xl font-extrabold text-white">
-                {upcomingTrip.destination || 'Goa'}
-              </h3>
-              <p className="text-xs font-mono text-cyan-300 mt-1 font-semibold">
-                {upcomingTrip.dateRange || 'Upcoming Season'}
-              </p>
-              <p className="text-xs text-slate-400 mt-2 font-medium">
-                {upcomingTrip.duration || 4} days • {upcomingTrip.travelers || 2} travelers • ₹{(upcomingTrip.budget || 25000).toLocaleString()} Cap
-              </p>
-            </div>
+            </h1>
+            <p className="text-base sm:text-lg text-slate-300 font-medium pt-2">
+              AI-powered personalized trips built around your budget, interests, and travel style.
+            </p>
+          </div>
+
+          <div className="pt-2 flex flex-wrap items-center gap-4">
+            <Link
+              to="/plan"
+              className="px-8 py-4 rounded-2xl bg-gradient-to-r from-cyan-500 via-blue-600 to-indigo-600 hover:from-cyan-400 hover:to-indigo-500 text-slate-950 font-extrabold text-sm shadow-xl shadow-cyan-500/30 flex items-center gap-3 transition-all hover:scale-[1.03]"
+            >
+              <span>Plan My Trip</span>
+              <ArrowRight className="w-5 h-5 stroke-[3]" />
+            </Link>
 
             <Link
-              to={upcomingTrip._id.startsWith('default') ? '/plan?preset=goa' : '/trips'}
-              className="inline-flex items-center gap-2 text-xs font-extrabold text-cyan-400 hover:text-cyan-300 group-hover:translate-x-1 transition-transform"
+              to="/trips"
+              className="px-6 py-4 rounded-2xl glass-card hover:bg-slate-800/80 text-white font-extrabold text-sm flex items-center gap-2 transition-all border border-slate-700"
             >
-              <span>View itinerary</span>
-              <ArrowRight className="w-4 h-4" />
+              <Briefcase className="w-4.5 h-4.5 text-cyan-400" />
+              <span>Saved Trips ({userTrips.length})</span>
             </Link>
           </div>
         </div>
+
+        {/* Change 1 — AI Planning Capability Badges */}
+        <div className="relative z-10 pt-8 border-t border-slate-800/80 mt-6">
+          <span className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider block mb-3">
+            AI Planning Capabilities:
+          </span>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-semibold text-slate-200">
+            <div className="flex items-center gap-2 text-cyan-300">
+              <CheckCircle2 className="w-4 h-4 text-cyan-400" />
+              <span>Personalized itinerary</span>
+            </div>
+            <div className="flex items-center gap-2 text-emerald-300">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+              <span>Budget optimization</span>
+            </div>
+            <div className="flex items-center gap-2 text-indigo-300">
+              <CheckCircle2 className="w-4 h-4 text-indigo-400" />
+              <span>Weather-aware planning</span>
+            </div>
+            <div className="flex items-center gap-2 text-amber-300">
+              <CheckCircle2 className="w-4 h-4 text-amber-400" />
+              <span>Real destination research</span>
+            </div>
+            <div className="flex items-center gap-2 text-purple-300">
+              <CheckCircle2 className="w-4 h-4 text-purple-400" />
+              <span>AI validation</span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* 3. Your Travel Stats Row */}
+      {/* Travel Stats Row */}
       <div className="space-y-3">
         <h2 className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider">
-          Your Travel Stats
+          Your Travel Insights
         </h2>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -165,12 +156,12 @@ export const Dashboard = () => {
           </div>
 
           <div className="glass-panel p-5 rounded-2xl border border-slate-800/80 flex items-center gap-4">
-            <div className="p-3 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <DollarSign className="w-5 h-5" />
+            <div className="p-3.5 rounded-2xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-black font-mono text-lg flex items-center justify-center">
+              ₹
             </div>
             <div>
               <p className="text-xl font-extrabold text-emerald-400">
-                ₹{(totalSpendPlanned / 100000).toFixed(1)}L
+                ₹{totalSpendPlanned > 0 ? (totalSpendPlanned >= 100000 ? `${(totalSpendPlanned / 100000).toFixed(1)}L` : totalSpendPlanned.toLocaleString()) : '0'}
               </p>
               <span className="text-[11px] text-slate-400 font-medium">Planned Budget</span>
             </div>
@@ -198,11 +189,11 @@ export const Dashboard = () => {
         </div>
       </div>
 
-      {/* 4. Recent Trips Grid */}
+      {/* Popular Destination Presets */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h2 className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider">
-            Recent Trips
+            Explore Top AI Destinations
           </h2>
           <Link to="/trips" className="text-xs font-semibold text-cyan-400 hover:underline">
             View All Saved Trips →
@@ -217,7 +208,7 @@ export const Dashboard = () => {
               className="glass-panel rounded-2xl overflow-hidden border border-slate-800 hover:border-cyan-500/40 transition-all group hover:scale-[1.02]"
             >
               <div
-                className="h-36 bg-cover bg-center relative"
+                className="h-40 bg-cover bg-center relative"
                 style={{
                   backgroundImage: recentCityImages[city] ? `url(${recentCityImages[city]})` : undefined,
                 }}

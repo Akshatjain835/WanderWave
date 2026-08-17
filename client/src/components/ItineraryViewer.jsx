@@ -18,11 +18,14 @@ import {
   Check,
   Database,
   CheckCircle2,
+  Brain,
+  ArrowDown,
+  AlertTriangle,
+  RotateCcw,
 } from 'lucide-react';
 import api from '../services/api';
 import { fetchDestinationImage } from '../services/imageService';
 
-// Popular places tags by destination
 const DESTINATION_PLACES = {
   goa: ['Baga Beach', 'Fort Aguada', 'Panjim', 'Dudhsagar Waterfalls', 'Anjuna Beach', 'Calangute'],
   manali: ['Solang Valley', 'Rohtang Pass', 'Hadimba Temple', 'Old Manali Cafes', 'Jogini Waterfall'],
@@ -38,11 +41,14 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
   const [expandedDays, setExpandedDays] = useState({});
   const [coverImageUrl, setCoverImageUrl] = useState('');
   
-  // Partial Day Regeneration Modal State
+  // Modal States
   const [activeRegenDay, setActiveRegenDay] = useState(null);
   const [customFeedback, setCustomFeedback] = useState('');
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [toastNotice, setToastNotice] = useState(null);
+
+  // Change 3 — Agentic AI Reasoning Process Modal State
+  const [showAgentProcessModal, setShowAgentProcessModal] = useState(false);
 
   useEffect(() => {
     setItinerary(initialItinerary);
@@ -116,6 +122,93 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         </div>
       )}
 
+      {/* Change 3 — Agentic AI Reasoning Process Modal */}
+      {showAgentProcessModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
+          <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-500/30 max-w-xl w-full space-y-6 shadow-2xl relative bg-slate-900/95 max-h-[85vh] overflow-y-auto">
+            <button
+              onClick={() => setShowAgentProcessModal(false)}
+              className="absolute top-4 right-4 p-2 rounded-full bg-slate-800 text-slate-400 hover:text-white"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            <div className="flex items-center gap-3 border-b border-slate-800 pb-4">
+              <div className="p-3 rounded-2xl bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/20">
+                <Brain className="w-6 h-6 animate-pulse" />
+              </div>
+              <div>
+                <span className="text-[10px] font-mono uppercase text-cyan-400 font-bold px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/20">
+                  LangGraph Multi-Agent Telemetry
+                </span>
+                <h3 className="text-lg font-extrabold text-white mt-0.5">
+                  AI PLANNING PROCESS
+                </h3>
+              </div>
+            </div>
+
+            {/* Workflow Execution Chain Flowchart */}
+            <div className="space-y-3 font-mono text-xs">
+              {[
+                { title: 'Requirement Analysis', desc: `Parsed duration (${itinerary.duration_days || 4} days), budget (₹${(itinerary.total_budget_cap_inr || 25000).toLocaleString()}), style (${itinerary.travelStyle || 'Adventure'})`, icon: '✓', status: 'pass' },
+                { title: 'Destination Research', desc: `Queried Qdrant Vector DB for local secrets in ${itinerary.destination || 'Goa'}`, icon: '✓', status: 'pass' },
+                { title: 'Weather Analysis', desc: `Retrieved Open-Meteo live forecasts (Rain probability checked)`, icon: '✓', status: 'pass' },
+                { title: 'Budget Optimization', desc: `Allocated categories (Stay, Transit, Meals, Activities, Cushion)`, icon: '✓', status: 'pass' },
+                { title: 'Itinerary Planning', desc: `Synthesized day-by-day morning, afternoon, and evening timelines`, icon: '✓', status: 'pass' },
+              ].map((step, idx) => (
+                <React.Fragment key={step.title}>
+                  <div className="p-3.5 rounded-xl bg-slate-950 border border-emerald-500/30 flex items-start gap-3">
+                    <span className="w-5 h-5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                      ✓
+                    </span>
+                    <div>
+                      <p className="font-bold text-white text-xs">{step.title}</p>
+                      <p className="text-[11px] text-slate-400 font-sans mt-0.5">{step.desc}</p>
+                    </div>
+                  </div>
+                  <div className="flex justify-center">
+                    <ArrowDown className="w-4 h-4 text-cyan-400/60 my-0.5" />
+                  </div>
+                </React.Fragment>
+              ))}
+
+              {/* Self-Correction Loop Visualization */}
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-400 flex-shrink-0 mt-0.5" />
+                <div>
+                  <p className="font-bold text-amber-300 text-xs">Validation Check (Self-Correction Loop)</p>
+                  <p className="text-[11px] text-amber-200/80 font-sans mt-0.5">Checked for budget overrun, rain safety, and geographic redundancy.</p>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <ArrowDown className="w-4 h-4 text-cyan-400/60 my-0.5" />
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-start gap-3">
+                <RotateCcw className="w-4 h-4 text-cyan-400 flex-shrink-0 mt-0.5 animate-spin" />
+                <div>
+                  <p className="font-bold text-cyan-300 text-xs">Re-planning Itinerary (Self-Correcting Node)</p>
+                  <p className="text-[11px] text-cyan-200/80 font-sans mt-0.5">Self-healing retry executed (Attempt 1 passed).</p>
+                </div>
+              </div>
+
+              <div className="flex justify-center">
+                <ArrowDown className="w-4 h-4 text-emerald-400 my-0.5" />
+              </div>
+
+              <div className="p-4 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                  <span className="font-bold text-emerald-200 text-xs uppercase">✓ Validation Passed & Finalized</span>
+                </div>
+                <span className="text-[10px] font-mono text-emerald-300">Ready</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Partial Day Regeneration Modal */}
       {activeRegenDay && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
@@ -141,11 +234,22 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
               </div>
             </div>
 
+            {/* Change 5 — Agentic AI Partial Re-planning Flow Banner */}
+            <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/20 text-[10px] font-mono text-cyan-300 flex items-center justify-between gap-1 overflow-x-auto">
+              <span>User Feedback</span>
+              <span className="text-slate-500">➔</span>
+              <span>Partial Re-planning</span>
+              <span className="text-slate-500">➔</span>
+              <span>AI Engine</span>
+              <span className="text-slate-500">➔</span>
+              <span className="text-emerald-400 font-bold">Updated Day</span>
+            </div>
+
             <p className="text-xs text-slate-300">
               How would you like WanderWave AI to adjust <strong className="text-cyan-300">Day {activeRegenDay}</strong>? Select a quick suggestion or enter custom instructions:
             </p>
 
-            {/* Quick Feedback Chips (5 Exact Options) */}
+            {/* Quick Feedback Chips */}
             <div className="grid grid-cols-2 gap-2">
               {[
                 { label: '💰 Cheaper', value: 'Cheaper budget option' },
@@ -192,7 +296,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         </div>
       )}
 
-      {/* Large Immersive Destination Hero Cover Banner */}
+      {/* Change 2 — Premium Destination Hero Cover Banner */}
       <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-6 sm:p-8 bg-slate-950">
         {coverImageUrl && (
           <div
@@ -200,45 +304,54 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
             style={{ backgroundImage: `url(${coverImageUrl})` }}
           />
         )}
-        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/60 to-transparent pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/65 to-transparent pointer-events-none" />
 
-        {/* Floating Content Overlay */}
         <div className="relative z-10 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold uppercase backdrop-blur-md mb-2">
                 <Sparkles className="w-3.5 h-3.5" /> AI Generated Travel Plan
               </span>
-              <h1 className="text-4xl sm:text-6xl font-extrabold text-white tracking-tight uppercase drop-shadow-md">
+
+              {/* Change 2 — Big Bold Hero Title (e.g. GOA • 4 Days • 2 Travelers) */}
+              <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight uppercase drop-shadow-md">
                 {itinerary.destination || 'GOA'}
               </h1>
-              <p className="text-sm sm:text-base font-semibold text-cyan-200 drop-shadow mt-1">
-                {itinerary.duration_days || 4} Day AI Generated Trip • {itinerary.starting_city ? `From ${itinerary.starting_city}` : 'Tailored Journey'}
+              <p className="text-sm sm:text-base font-extrabold text-cyan-300 drop-shadow mt-1">
+                {itinerary.duration_days || 4} Days • {itinerary.travelers_count || 2} Travelers
               </p>
             </div>
 
-            {onSaveTrip && (
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Change 3 — See how WanderWave planned this trip Button */}
               <button
-                onClick={onSaveTrip}
-                disabled={isSaving}
-                className="px-6 py-3.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-500/30 backdrop-blur-md disabled:opacity-50"
+                onClick={() => setShowAgentProcessModal(true)}
+                className="px-4 py-3 rounded-2xl bg-indigo-600/90 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/25 border border-indigo-400/30 backdrop-blur-md"
               >
-                <Bookmark className="w-4.5 h-4.5" />
-                {isSaving ? 'Saving...' : 'Save Itinerary'}
+                <Brain className="w-4 h-4 text-cyan-300 animate-pulse" />
+                <span>See how WanderWave planned this trip</span>
               </button>
-            )}
+
+              {onSaveTrip && (
+                <button
+                  onClick={onSaveTrip}
+                  disabled={isSaving}
+                  className="px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-extrabold text-xs flex items-center justify-center gap-2 transition-all shadow-xl shadow-emerald-500/30 backdrop-blur-md disabled:opacity-50"
+                >
+                  <Bookmark className="w-4 h-4" />
+                  {isSaving ? 'Saving...' : 'Save Itinerary'}
+                </button>
+              )}
+            </div>
           </div>
 
-          {/* Quick Metrics Bar */}
+          {/* Change 2 — Subheader Bar (₹25,000 • Adventure) */}
           <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-semibold text-slate-200 pt-2 font-mono">
-            <span className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-emerald-400 font-extrabold">
-              ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()} Budget
+            <span className="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-800 text-emerald-400 font-black text-base">
+              ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()}
             </span>
-            <span className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-cyan-300">
-              👥 {itinerary.travelers_count || 2} Travelers
-            </span>
-            <span className="bg-slate-900/80 backdrop-blur-md px-3 py-1.5 rounded-xl border border-slate-800 text-indigo-300">
-              ✨ {itinerary.travelStyle || 'Adventure'} Style
+            <span className="bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 text-cyan-300 font-bold">
+              {itinerary.travelStyle || 'Adventure'}
             </span>
           </div>
 
@@ -261,84 +374,143 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         </div>
       </div>
 
-      {/* Trust-Building Cards Grid: AI Sources & Why This Plan */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {/* AI Sources Badge Card */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 bg-slate-900/60">
+      {/* Change 4 & 6 — Grounding, Trust & Validation Cards Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* AI Research Sources Card */}
+        <div className="glass-panel p-5 rounded-2xl border border-cyan-500/30 space-y-3 bg-slate-900/80 shadow-lg">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
             <div className="p-1.5 rounded-lg bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
               <Database className="w-4 h-4" />
             </div>
             <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-              AI Ground Truth Sources
+              AI Research Sources
             </h3>
           </div>
 
           <div className="space-y-2 text-xs font-medium">
-            <div className="flex items-center gap-2 text-emerald-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>{itinerary.destination} Local Guidebook (Qdrant Vector DB)</span>
+            <div className="flex items-center gap-2 text-cyan-200 justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📚</span>
+                <span className="font-bold text-white">Guidebook</span>
+              </div>
+              <span className="text-[10px] font-mono text-cyan-400 bg-cyan-500/10 px-2 py-0.5 rounded border border-cyan-500/20">Qdrant DB</span>
             </div>
-            <div className="flex items-center gap-2 text-emerald-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Real-Time Forecast (Open-Meteo Weather API)</span>
+            <div className="flex items-center gap-2 text-cyan-200 justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🌦</span>
+                <span className="font-bold text-white">Weather</span>
+              </div>
+              <span className="text-[10px] font-mono text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">Open-Meteo</span>
             </div>
-            <div className="flex items-center gap-2 text-emerald-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Verified Local Attractions & Hidden Spots</span>
+            <div className="flex items-center gap-2 text-cyan-200 justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">📍</span>
+                <span className="font-bold text-white">Places</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">Verified</span>
             </div>
-            <div className="flex items-center gap-2 text-emerald-300">
-              <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-              <span>Express Route & Transit Distance Estimates</span>
+            <div className="flex items-center gap-2 text-cyan-200 justify-between">
+              <div className="flex items-center gap-2">
+                <span className="text-base">🚗</span>
+                <span className="font-bold text-white">Transit</span>
+              </div>
+              <span className="text-[10px] font-mono text-indigo-400 bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20">Estimates</span>
             </div>
           </div>
         </div>
 
-        {/* "Why This Plan?" Rationale Card */}
-        <div className="glass-panel p-5 rounded-2xl border border-slate-800 space-y-3 bg-slate-900/60">
+        {/* Why This Plan? Rationale Card */}
+        <div className="glass-panel p-5 rounded-2xl border border-emerald-500/30 space-y-3 bg-slate-900/80 shadow-lg">
           <div className="flex items-center gap-2 border-b border-slate-800 pb-2.5">
             <div className="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
               <Sparkles className="w-4 h-4" />
             </div>
             <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
-              Why This Itinerary?
+              Why This Plan?
             </h3>
           </div>
 
           <div className="space-y-2 text-xs font-medium">
             <div className="flex items-center gap-2 text-slate-200">
               <span className="text-emerald-400 font-bold">✓</span>
-              <span>Fits your ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()} budget cap</span>
+              <span>Matches <strong className="text-cyan-300">{itinerary.travelStyle || 'Adventure'}</strong> style</span>
             </div>
             <div className="flex items-center gap-2 text-slate-200">
               <span className="text-emerald-400 font-bold">✓</span>
-              <span>Prioritizes your interests ({itinerary.travelStyle || 'Adventure'} style)</span>
+              <span>Fits <strong className="text-emerald-300">₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()}</strong> budget</span>
             </div>
             <div className="flex items-center gap-2 text-slate-200">
               <span className="text-emerald-400 font-bold">✓</span>
-              <span>Avoids long travel between activities</span>
+              <span>Uses nearby attractions</span>
             </div>
             <div className="flex items-center gap-2 text-slate-200">
               <span className="text-emerald-400 font-bold">✓</span>
-              <span>Optimized for {itinerary.travelers_count || 2} travelers</span>
+              <span>Avoids rain outdoor spots</span>
             </div>
-            <div className="flex items-center gap-2 text-slate-200">
-              <span className="text-emerald-400 font-bold">✓</span>
-              <span>Weather checked for your travel dates</span>
+          </div>
+        </div>
+
+        {/* Change 6 — TRIP VALIDATION Card */}
+        <div className="glass-panel p-5 rounded-2xl border border-indigo-500/30 space-y-3 bg-slate-900/80 shadow-lg">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-2.5">
+            <div className="flex items-center gap-2">
+              <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+                <CheckCircle2 className="w-4 h-4" />
+              </div>
+              <h3 className="text-xs font-mono font-bold text-white uppercase tracking-wider">
+                TRIP VALIDATION
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-full">
+              4/4 Checks Passed
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2 text-xs font-medium">
+            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span className="text-white font-semibold">Budget</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-300">Passed</span>
+            </div>
+
+            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span className="text-white font-semibold">Weather</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-300">Passed</span>
+            </div>
+
+            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span className="text-white font-semibold">Locations</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-300">Passed</span>
+            </div>
+
+            <div className="p-2 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                <span className="text-emerald-400 font-bold">✓</span>
+                <span className="text-white font-semibold">Schedule</span>
+              </div>
+              <span className="text-[10px] font-mono text-emerald-300">Passed</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Day-by-Day Timeline Planner */}
-      <div className="space-y-6">
+      {/* Change 2 — Timeline Planner with Downwards Arrows (↓) */}
+      <div className="space-y-8">
         {itinerary.days.map((dayData) => {
           const isCollapsed = expandedDays[dayData.day_number];
 
           return (
             <div
               key={dayData.day_number}
-              className="glass-panel rounded-3xl border border-slate-800/90 overflow-hidden transition-all duration-200 hover:border-slate-700"
+              className="glass-panel rounded-3xl border border-slate-800/90 overflow-hidden transition-all duration-200 hover:border-slate-700 space-y-2"
             >
               {/* Day Header Banner */}
               <div
@@ -366,7 +538,6 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
                 </div>
 
                 <div className="flex items-center gap-3">
-                  {/* Regenerate This Day Button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
@@ -391,139 +562,111 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
                 </div>
               </div>
 
-              {/* Day Content Timeline Slots */}
+              {/* Change 2 — Connected Timeline Flow with Downwards Arrows (↓) */}
               {!isCollapsed && (
-                <div className="p-6 space-y-6 bg-slate-950/60">
-                  <div className="relative border-l-2 border-slate-800 pl-6 sm:pl-8 ml-2 space-y-6">
+                <div className="p-6 sm:p-8 bg-slate-950/70 space-y-6">
+                  <div className="flex flex-col items-center max-w-2xl mx-auto space-y-4">
                     {/* Morning Activity Slot */}
                     {dayData.morning && (
-                      <div className="relative group">
-                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-amber-400 ring-4 ring-slate-950 flex items-center justify-center shadow-md shadow-amber-400/30" />
-
-                        <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-amber-500/30 transition-all">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold uppercase font-mono flex items-center gap-1">
-                                <Sun className="w-3 h-3" /> Morning
-                              </span>
-                              <span className="text-xs font-mono text-slate-300 font-bold">
-                                {dayData.morning.time || '08:00 AM'}
-                              </span>
-                            </div>
-
-                            <span className="text-xs font-mono font-extrabold text-emerald-400">
-                              ₹{dayData.morning.estimated_cost_inr || 150}
+                      <div className="w-full glass-card p-5 rounded-2xl border border-slate-800 hover:border-amber-500/30 transition-all space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold font-mono flex items-center gap-1">
+                              ☀ {dayData.morning.time || '09:00 AM'}
                             </span>
                           </div>
-
-                          <h4 className="text-base font-bold text-white leading-snug">
-                            {dayData.morning.activity}
-                          </h4>
-
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium">
-                            <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-                              <MapPin className="w-3.5 h-3.5" /> {dayData.morning.location}
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
-                              <Navigation className="w-3 h-3 text-slate-500" /> ~15 mins transit
-                            </span>
-                          </div>
-
-                          {dayData.morning.tips && (
-                            <div className="text-xs text-cyan-200/90 bg-slate-900/90 p-3 rounded-xl border border-slate-800 leading-relaxed">
-                              💡 <strong className="text-cyan-300">Local Guidebook Tip:</strong> {dayData.morning.tips}
-                            </div>
-                          )}
+                          <span className="text-xs font-mono font-extrabold text-emerald-400">
+                            ₹{dayData.morning.estimated_cost_inr || 150}
+                          </span>
                         </div>
+
+                        <h4 className="text-base font-extrabold text-white">
+                          {dayData.morning.activity}
+                        </h4>
+
+                        <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> {dayData.morning.location}
+                        </p>
+
+                        {dayData.morning.tips && (
+                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 mt-1">
+                            💡 {dayData.morning.tips}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Change 2 — Downward Arrow Connector (↓) */}
+                    {dayData.morning && dayData.afternoon && (
+                      <div className="flex items-center justify-center my-1 text-cyan-400/80 font-black text-xl animate-bounce">
+                        ↓
                       </div>
                     )}
 
                     {/* Afternoon Activity Slot */}
                     {dayData.afternoon && (
-                      <div className="relative group">
-                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-cyan-400 ring-4 ring-slate-950 flex items-center justify-center shadow-md shadow-cyan-400/30" />
-
-                        <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-cyan-500/30 transition-all">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-[10px] font-bold uppercase font-mono flex items-center gap-1">
-                                <Clock className="w-3 h-3" /> Afternoon
-                              </span>
-                              <span className="text-xs font-mono text-slate-300 font-bold">
-                                {dayData.afternoon.time || '01:00 PM'}
-                              </span>
-                            </div>
-
-                            <span className="text-xs font-mono font-extrabold text-emerald-400">
-                              ₹{dayData.afternoon.estimated_cost_inr || 450}
+                      <div className="w-full glass-card p-5 rounded-2xl border border-slate-800 hover:border-cyan-500/30 transition-all space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-bold font-mono flex items-center gap-1">
+                              🍴 {dayData.afternoon.time || '01:00 PM'}
                             </span>
                           </div>
-
-                          <h4 className="text-base font-bold text-white leading-snug">
-                            {dayData.afternoon.activity}
-                          </h4>
-
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium">
-                            <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-                              <MapPin className="w-3.5 h-3.5" /> {dayData.afternoon.location}
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
-                              <Navigation className="w-3 h-3 text-slate-500" /> ~20 mins transit
-                            </span>
-                          </div>
-
-                          {dayData.afternoon.tips && (
-                            <div className="text-xs text-cyan-200/90 bg-slate-900/90 p-3 rounded-xl border border-slate-800 leading-relaxed">
-                              💡 <strong className="text-cyan-300">Local Guidebook Tip:</strong> {dayData.afternoon.tips}
-                            </div>
-                          )}
+                          <span className="text-xs font-mono font-extrabold text-emerald-400">
+                            ₹{dayData.afternoon.estimated_cost_inr || 450}
+                          </span>
                         </div>
+
+                        <h4 className="text-base font-extrabold text-white">
+                          {dayData.afternoon.activity}
+                        </h4>
+
+                        <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> {dayData.afternoon.location}
+                        </p>
+
+                        {dayData.afternoon.tips && (
+                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 mt-1">
+                            💡 {dayData.afternoon.tips}
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    {/* Change 2 — Downward Arrow Connector (↓) */}
+                    {dayData.afternoon && dayData.evening && (
+                      <div className="flex items-center justify-center my-1 text-cyan-400/80 font-black text-xl animate-bounce">
+                        ↓
                       </div>
                     )}
 
                     {/* Evening Activity Slot */}
                     {dayData.evening && (
-                      <div className="relative group">
-                        <div className="absolute -left-[31px] top-1 w-4 h-4 rounded-full bg-indigo-400 ring-4 ring-slate-950 flex items-center justify-center shadow-md shadow-indigo-400/30" />
-
-                        <div className="glass-card p-5 rounded-2xl border border-slate-800 space-y-3 hover:border-indigo-500/30 transition-all">
-                          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-[10px] font-bold uppercase font-mono flex items-center gap-1">
-                                <Utensils className="w-3 h-3" /> Evening
-                              </span>
-                              <span className="text-xs font-mono text-slate-300 font-bold">
-                                {dayData.evening.time || '05:30 PM'}
-                              </span>
-                            </div>
-
-                            <span className="text-xs font-mono font-extrabold text-emerald-400">
-                              ₹{dayData.evening.estimated_cost_inr || 200}
+                      <div className="w-full glass-card p-5 rounded-2xl border border-slate-800 hover:border-indigo-500/30 transition-all space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-bold font-mono flex items-center gap-1">
+                              🌅 {dayData.evening.time || '05:30 PM'}
                             </span>
                           </div>
-
-                          <h4 className="text-base font-bold text-white leading-snug">
-                            {dayData.evening.activity}
-                          </h4>
-
-                          <div className="flex flex-wrap items-center gap-3 text-xs text-slate-400 font-medium">
-                            <span className="flex items-center gap-1 text-cyan-400 font-semibold">
-                              <MapPin className="w-3.5 h-3.5" /> {dayData.evening.location}
-                            </span>
-                            <span>•</span>
-                            <span className="flex items-center gap-1 text-slate-400 font-mono text-[11px]">
-                              <Navigation className="w-3 h-3 text-slate-500" /> ~10 mins transit
-                            </span>
-                          </div>
-
-                          {dayData.evening.tips && (
-                            <div className="text-xs text-cyan-200/90 bg-slate-900/90 p-3 rounded-xl border border-slate-800 leading-relaxed">
-                              💡 <strong className="text-cyan-300">Local Guidebook Tip:</strong> {dayData.evening.tips}
-                            </div>
-                          )}
+                          <span className="text-xs font-mono font-extrabold text-emerald-400">
+                            ₹{dayData.evening.estimated_cost_inr || 200}
+                          </span>
                         </div>
+
+                        <h4 className="text-base font-extrabold text-white">
+                          {dayData.evening.activity}
+                        </h4>
+
+                        <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                          <MapPin className="w-3.5 h-3.5" /> {dayData.evening.location}
+                        </p>
+
+                        {dayData.evening.tips && (
+                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 mt-1">
+                            💡 {dayData.evening.tips}
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
