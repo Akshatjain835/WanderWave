@@ -19,22 +19,27 @@ const allowedOrigins = [
   'https://wanderwave.vercel.app',
   'https://wanderwave-pb5c4r99j-akshats-projects-19b508c8.vercel.app',
   process.env.CLIENT_URL,
-];
+].filter(Boolean);
+
+const checkOrigin = (origin, callback) => {
+  if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+    callback(null, true);
+  } else {
+    callback(new Error('Not allowed by CORS'));
+  }
+};
 
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, true);
-    } else {
-      callback(null, true);
-    }
-  },
+  origin: checkOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
-app.options('*', cors());
+app.options('*', cors({
+  origin: checkOrigin,
+  credentials: true
+}));
 
 // 2. Body Parser
 app.use(express.json());
