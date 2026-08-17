@@ -24,11 +24,13 @@ const allowedOrigins = [
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      callback(null, origin || true);
-    } else {
-      callback(null, true);
+    if (!origin) {
+      return callback(null, true);
     }
+    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      return callback(null, origin);
+    }
+    return callback(null, origin);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

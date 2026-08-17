@@ -16,12 +16,12 @@ export const registerUser = async (req, res) => {
       });
     }
 
-    // Check if user exists
+    // Check if user exists with 2s timeout
     let existingUser = null;
     try {
-      existingUser = await User.findOne({ email });
+      existingUser = await User.findOne({ email }).maxTimeMS(2000);
     } catch (dbErr) {
-      console.warn('[DB Notice] MongoDB query failed, using direct creation.');
+      console.warn('[DB Notice] MongoDB query timed out or offline, using in-memory creation fallback.');
     }
 
     if (existingUser) {
