@@ -112,6 +112,7 @@ export const Signup = () => {
                 <input
                   type="password"
                   required
+                  autoComplete="new-password"
                   minLength={6}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}

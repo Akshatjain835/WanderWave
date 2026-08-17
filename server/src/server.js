@@ -12,11 +12,12 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// Middleware & Production CORS
+// 1. Production CORS Middleware
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
-  'https://wanderwave-6f1jlyuj7-akshats-projects-19b508c8.vercel.app',
+  'https://wanderwave.vercel.app',
+  'https://wanderwave-pb5c4r99j-akshats-projects-19b508c8.vercel.app',
   process.env.CLIENT_URL,
 ];
 
@@ -28,8 +29,14 @@ app.use(cors({
       callback(null, true);
     }
   },
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
+app.options('*', cors());
+
+// 2. Body Parser
 app.use(express.json());
 
 // API Routes

@@ -1,7 +1,12 @@
 import axios from 'axios';
 
+// Ensure baseURL always contains /api prefix regardless of environment variable trailing slashes
+const rawBaseURL = import.meta.env.VITE_API_URL || 'https://wanderwave-1-5xti.onrender.com/api';
+const cleanURL = rawBaseURL.replace(/\/+$/, '');
+const baseURL = cleanURL.endsWith('/api') ? cleanURL : `${cleanURL}/api`;
+
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'https://wanderwave-1-5xti.onrender.com/api',
+  baseURL,
   timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
