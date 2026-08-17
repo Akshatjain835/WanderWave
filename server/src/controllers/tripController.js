@@ -3,6 +3,7 @@ import Trip from '../models/Trip.js';
 import { runRequirementAnalysis as runLocalRequirementAnalysis } from '../graph/workflow.js';
 
 const MOCK_USER_ID = '650000000000000000000001';
+const PYTHON_SERVICE_URL = process.env.PYTHON_SERVICE_URL || 'https://wanderwave-d26y.onrender.com';
 
 // Helper to safely get user ObjectId string
 const getUserId = (req) => {
@@ -33,7 +34,7 @@ export const analyzeTripRequest = async (req, res) => {
     let resultData = null;
 
     try {
-      const pythonResponse = await axios.post('http://localhost:8000/api/graph/analyze', {
+      const pythonResponse = await axios.post(`${PYTHON_SERVICE_URL}/api/graph/analyze`, {
         prompt: userPrompt,
         destination,
         startingCity,
@@ -107,7 +108,7 @@ export const resumeTripRequest = async (req, res) => {
     let resultData = null;
 
     try {
-      const pythonResponse = await axios.post('http://localhost:8000/api/graph/resume', {
+      const pythonResponse = await axios.post(`${PYTHON_SERVICE_URL}/api/graph/resume`, {
         user_decision,
         destination,
         budget,
@@ -383,7 +384,7 @@ export const regenerateDay = async (req, res) => {
     let resultData = null;
 
     try {
-      const pythonResponse = await axios.post('http://localhost:8000/api/graph/regenerate-day', {
+      const pythonResponse = await axios.post(`${PYTHON_SERVICE_URL}/api/graph/regenerate-day`, {
         dayNumber: Number(dayNumber),
         feedback,
         currentItinerary,

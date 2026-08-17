@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: '/api',
+  baseURL: import.meta.env.VITE_API_URL || 'https://wanderwave-1-5xti.onrender.com/api',
   timeout: 120000,
   headers: {
     'Content-Type': 'application/json',
