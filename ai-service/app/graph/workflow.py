@@ -3,6 +3,7 @@ from langgraph.checkpoint.memory import MemorySaver
 from app.graph.state import TripState
 from app.graph.nodes.requirement_agent import requirement_agent_node
 from app.graph.nodes.research_agents import research_agents_node
+from app.graph.nodes.travel_intelligence_agent import travel_intelligence_agent_node
 from app.graph.nodes.budget_agent import budget_agent_node
 from app.graph.nodes.planner_agent import planner_agent_node
 from app.graph.nodes.hitl_agent import human_clarification_node
@@ -45,6 +46,7 @@ def build_trip_graph():
     workflow.add_node("requirement_agent", requirement_agent_node)
     workflow.add_node("human_clarification_node", human_clarification_node)
     workflow.add_node("research_agents", research_agents_node)
+    workflow.add_node("travel_intelligence_agent", travel_intelligence_agent_node)
     workflow.add_node("budget_agent", budget_agent_node)
     workflow.add_node("planner_agent", planner_agent_node)
     workflow.add_node("validator_agent", validator_agent_node)
@@ -63,7 +65,8 @@ def build_trip_graph():
     )
 
     workflow.add_edge("human_clarification_node", END)
-    workflow.add_edge("research_agents", "budget_agent")
+    workflow.add_edge("research_agents", "travel_intelligence_agent")
+    workflow.add_edge("travel_intelligence_agent", "budget_agent")
     workflow.add_edge("budget_agent", "planner_agent")
     workflow.add_edge("planner_agent", "validator_agent")
 

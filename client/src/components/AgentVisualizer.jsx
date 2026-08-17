@@ -49,6 +49,17 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
       summary: 'Queried Qdrant Vector DB for local secrets & fetched live weather forecast',
     },
     {
+      id: 'travel_intelligence',
+      stepId: 3,
+      title: 'Travel Intelligence Agent',
+      icon: Zap,
+      status: activeStep > 3 || isComplete ? 'SUCCESS' : activeStep === 3 ? 'RUNNING' : 'PENDING',
+      tools: ['Destination Analytics Engine', 'Seasonal Scorer'],
+      retrieved: 'Overall Score: 7.9/10 | Best Window: Oct - Mar',
+      execution: '0.54 sec',
+      summary: 'Calculated weather, budget, activity, transport & crowd comfort scores',
+    },
+    {
       id: 'budget',
       stepId: 3,
       title: 'Budget Agent',
@@ -202,12 +213,27 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
 
               <ArrowDown className="w-4 h-4 text-cyan-400/60 my-2" />
 
-              {/* Main Downward Chain: Budget ➔ Planner ➔ Validator */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full">
+              {/* Main Downward Chain: Travel Intelligence ➔ Budget ➔ Planner ➔ Validator */}
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 w-full flex-wrap">
+                <button
+                  onClick={() => setSelectedNodeDetails('Travel Intelligence Agent')}
+                  className={`p-3 rounded-2xl border transition-all flex items-center gap-2 font-bold shadow-lg ${
+                    activeStep === 3 && !isComplete
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 ring-2 ring-cyan-500/40 animate-pulse'
+                      : 'bg-slate-900 border-slate-700 text-white hover:border-cyan-500/50'
+                  }`}
+                >
+                  <Zap className="w-4 h-4 text-amber-400" />
+                  <span>Travel Intelligence Agent</span>
+                  <span className="text-[9px] px-1.5 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/30">Node 3</span>
+                </button>
+
+                <span className="text-slate-600 font-bold hidden sm:inline">➔</span>
+
                 <button
                   onClick={() => setSelectedNodeDetails('Budget Agent')}
                   className={`p-3 rounded-2xl border transition-all flex items-center gap-2 font-bold shadow-lg ${
-                    activeStep === 3 && !isComplete
+                    activeStep === 4 && !isComplete
                       ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 ring-2 ring-cyan-500/40 animate-pulse'
                       : 'bg-slate-900 border-slate-700 text-white hover:border-cyan-500/50'
                   }`}
