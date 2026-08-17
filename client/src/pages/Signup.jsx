@@ -95,6 +95,7 @@ export const Signup = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="alex@domain.com"

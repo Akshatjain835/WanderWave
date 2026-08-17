@@ -12,34 +12,31 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 1. Production CORS Middleware
+// 1. Production CORS Middleware (Dynamically reflects request origin for Vercel & localhost)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://wanderwave.vercel.app',
+  'https://wanderwave-phi.vercel.app',
   'https://wanderwave-pb5c4r99j-akshats-projects-19b508c8.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
-const checkOrigin = (origin, callback) => {
-  if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-    callback(null, true);
-  } else {
-    callback(new Error('Not allowed by CORS'));
-  }
-};
-
-app.use(cors({
-  origin: checkOrigin,
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+      callback(null, origin || true);
+    } else {
+      callback(null, true);
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
-}));
+};
 
-app.options('*', cors({
-  origin: checkOrigin,
-  credentials: true
-}));
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 
 // 2. Body Parser
 app.use(express.json());

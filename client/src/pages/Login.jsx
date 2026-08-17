@@ -94,6 +94,7 @@ export const Login = () => {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@domain.com"
