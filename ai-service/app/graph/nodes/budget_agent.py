@@ -28,8 +28,9 @@ async def budget_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     if api_key:
         try:
             llm = ChatGoogleGenerativeAI(
-                model="gemini-3.6-flash",
+                model="gemini-2.0-flash",
                 google_api_key=api_key,
+                temperature=0.2,
                 max_retries=1,
                 request_timeout=12
             )

@@ -98,7 +98,7 @@ export const analyzeTripRequest = async (req, res) => {
   }
 };
 
-// @desc    Resume interrupted trip request with Human-in-the-Loop decision (Day 8)
+// @desc    Resume interrupted trip request with Human-in-the-Loop decision
 // @route   POST /api/trips/resume
 // @access  Private
 export const resumeTripRequest = async (req, res) => {
@@ -172,7 +172,7 @@ export const resumeTripRequest = async (req, res) => {
 // In-memory trips fallback store when MongoDB Atlas connection is offline
 let inMemoryTrips = [];
 
-// @desc    Save generated trip to MongoDB persistence (Day 9)
+// @desc    Save generated trip to MongoDB persistence
 // @route   POST /api/trips
 // @access  Private
 export const saveTrip = async (req, res) => {
@@ -246,7 +246,7 @@ export const saveTrip = async (req, res) => {
   }
 };
 
-// @desc    Get all saved trips for logged-in user (Day 9)
+// @desc    Get all saved trips for logged-in user
 // @route   GET /api/trips
 // @access  Private
 export const getUserTrips = async (req, res) => {
@@ -274,7 +274,7 @@ export const getUserTrips = async (req, res) => {
   }
 };
 
-// @desc    Get single trip details by ID (Day 9)
+// @desc    Get single trip details by ID
 // @route   GET /api/trips/:id
 // @access  Private
 export const getTripById = async (req, res) => {
@@ -308,7 +308,7 @@ export const getTripById = async (req, res) => {
   }
 };
 
-// @desc    Delete trip from MongoDB (Day 9)
+// @desc    Delete trip from MongoDB
 // @route   DELETE /api/trips/:id
 // @access  Private
 export const deleteTrip = async (req, res) => {
@@ -337,7 +337,7 @@ export const deleteTrip = async (req, res) => {
   }
 };
 
-// @desc    Update trip status (Day 9)
+// @desc    Update trip status
 // @route   PATCH /api/trips/:id/status
 // @access  Private
 export const updateTripStatus = async (req, res) => {

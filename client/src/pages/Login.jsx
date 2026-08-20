@@ -68,7 +68,7 @@ export const Login = () => {
             className="w-full mb-6 py-2.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500/15 via-blue-500/15 to-indigo-500/15 border border-cyan-500/30 text-cyan-300 font-semibold text-xs flex items-center justify-center gap-2 hover:bg-cyan-500/25 transition-all group shadow-md"
           >
             <Sparkles className="w-4 h-4 text-cyan-400 group-hover:rotate-12 transition-transform" />
-            ⚡ 1-Click Placement Demo Login
+            ⚡ 1-Click Quick Demo Login
           </button>
 
           <div className="relative flex py-2 items-center mb-6">

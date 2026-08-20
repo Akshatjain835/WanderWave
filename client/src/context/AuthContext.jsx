@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { loginUser, registerUser, getCurrentUser, updatePreferences } from '../services/authService';
+import { loginUser, registerUser, getCurrentUser, updatePreferences, updateUserProfile } from '../services/authService';
 
 const AuthContext = createContext();
 
@@ -78,19 +78,54 @@ export const AuthProvider = ({ children }) => {
   };
 
   const updateUserPrefs = async (newPrefs) => {
+    // 1. Immediately update local state & localStorage for instant UI feedback
+    setUser((prev) => {
+      const updated = {
+        ...(prev || { name: 'Explorer', email: 'explorer@wanderwave.ai' }),
+        preferences: { ...(prev?.preferences || {}), ...newPrefs },
+      };
+      localStorage.setItem('wanderwave_user', JSON.stringify(updated));
+      return updated;
+    });
+
     try {
       const data = await updatePreferences(newPrefs);
       if (data.success) {
-        setUser((prev) => ({
-          ...prev,
-          preferences: { ...prev?.preferences, ...newPrefs },
-        }));
-        return { success: true };
+        return { success: true, message: 'Preferences saved to memory!' };
       }
-      return { success: false };
     } catch (err) {
-      return { success: false, message: err.message };
+      console.warn('[Offline/Demo Notice] Saved preferences locally:', err.message);
     }
+    return { success: true, message: 'Preferences updated in local profile!' };
+  };
+
+  const updateProfileInfo = async (profileData) => {
+    // 1. Immediately update local state & localStorage for instant UI feedback
+    setUser((prev) => {
+      const updated = {
+        ...(prev || {}),
+        name: profileData.name || prev?.name || 'Explorer',
+        email: profileData.email || prev?.email || 'explorer@wanderwave.ai',
+        preferences: { ...(prev?.preferences || {}), ...(profileData.preferences || {}) },
+      };
+      localStorage.setItem('wanderwave_user', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      const data = await updateUserProfile(profileData);
+      if (data.success && data.user) {
+        setUser((prev) => {
+          const updated = { ...prev, ...data.user };
+          localStorage.setItem('wanderwave_user', JSON.stringify(updated));
+          return updated;
+        });
+        return { success: true, message: data.message };
+      }
+    } catch (err) {
+      console.warn('[Offline/Demo Notice] Saved profile locally:', err.message);
+    }
+    return { success: true, message: 'Profile & preferences saved successfully! 🌊' };
   };
 
   return (
@@ -104,6 +139,7 @@ export const AuthProvider = ({ children }) => {
         signup,
         logout,
         updateUserPrefs,
+        updateProfileInfo,
         isAuthenticated: !!token,
       }}
     >

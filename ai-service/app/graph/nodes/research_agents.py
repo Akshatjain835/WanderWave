@@ -45,13 +45,13 @@ async def research_agents_node(state: Dict[str, Any]) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY", "")
     research_output = None
 
-    # Day 12: Query Qdrant Cloud Vector Database for Hyper-local RAG Guidebooks
+    # Query Qdrant Cloud Vector Database for Hyper-local RAG Guidebooks
     rag_tips = retrieve_hyperlocal_knowledge(destination, ", ".join(interests))
 
     if api_key:
         try:
             llm = ChatGoogleGenerativeAI(
-                model="gemini-3.6-flash",
+                model="gemini-2.0-flash",
                 google_api_key=api_key,
                 temperature=0.3,
                 max_retries=1,

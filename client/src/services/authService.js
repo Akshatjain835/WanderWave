@@ -19,3 +19,8 @@ export const updatePreferences = async (preferences) => {
   const response = await api.put('/auth/preferences', preferences);
   return response.data;
 };
+
+export const updateUserProfile = async (profileData) => {
+  const response = await api.put('/auth/profile', profileData);
+  return response.data;
+};

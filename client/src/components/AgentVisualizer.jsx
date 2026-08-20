@@ -123,7 +123,7 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
           </div>
         </div>
 
-        {/* Toggle Button for Interviewers & Engineers */}
+        {/* Toggle Button for Technical Inspection & Telemetry */}
         <button
           onClick={() => setShowTechnicalTrace(!showTechnicalTrace)}
           className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-indigo-900/80 to-slate-900 hover:from-indigo-800 hover:to-slate-800 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold flex items-center gap-2 transition-all shadow-md"

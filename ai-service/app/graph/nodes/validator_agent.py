@@ -3,7 +3,7 @@ from typing import Dict, Any, List
 
 async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Day 10: ValidatorAgent Node (Pure Validation & Feedback Node).
+    ValidatorAgent Node (Pure Validation & Feedback Node).
     Architectural Contract:
     - Responsible ONLY for detecting rule violations and producing structured feedback.
     - NEVER modifies or mutates the itinerary itself.

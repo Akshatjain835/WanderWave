@@ -9,12 +9,12 @@ from app.graph.nodes.planner_agent import planner_agent_node
 from app.graph.nodes.hitl_agent import human_clarification_node
 from app.graph.nodes.validator_agent import validator_agent_node
 
-# Day 11 Checkpointer for State Persistence
+# MemorySaver Checkpointer for State Persistence
 memory_checkpointer = MemorySaver()
 
 def route_after_requirement(state: TripState) -> str:
     """
-    Day 8/11 Conditional Router:
+    Conditional Router:
     If destination is missing or requires_human_input flag is True, pause and route to Human-in-the-Loop clarification node.
     """
     destination = state.get("destination", "")
@@ -24,7 +24,7 @@ def route_after_requirement(state: TripState) -> str:
 
 def route_after_validation(state: TripState) -> str:
     """
-    Day 10 Conditional Router (Cyclic Re-Planning Loop):
+    Conditional Router (Cyclic Re-Planning Loop):
     - If Valid -> END
     - If Invalid & retries < 3 -> Route back to planner_agent (Re-Planner Loop)
     - If Invalid & retries >= 3 -> Route to human_clarification_node (HITL)
@@ -81,7 +81,7 @@ def build_trip_graph():
         }
     )
 
-    # Day 11: Compile with MemorySaver Checkpointer
+    # Compile with MemorySaver Checkpointer
     return workflow.compile(checkpointer=memory_checkpointer)
 
 trip_graph_app = build_trip_graph()

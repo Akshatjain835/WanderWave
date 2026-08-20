@@ -3,7 +3,7 @@ from app.rag.ingestion import get_qdrant_client, generate_embedding, COLLECTION_
 
 def retrieve_hyperlocal_knowledge(destination: str, query: str = "") -> List[Dict[str, Any]]:
     """
-    RAG Retriever Tool (Day 12):
+    RAG Retriever Tool:
     Queries Qdrant Cloud Vector Database for hyper-local guidebooks, hidden spots, and safety tips.
     """
     try:

@@ -53,7 +53,7 @@ export const TripStateAnnotation = Annotation.Root({
     default: () => ({}),
   }),
 
-  // Research Outputs (Populated by Day 5 Agents)
+  // Research Outputs
   placesFound: Annotation({
     reducer: (x, y) => y ?? x,
     default: () => [],

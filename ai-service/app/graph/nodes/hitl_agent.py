@@ -3,7 +3,7 @@ from typing import Dict, Any, List
 
 async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Day 11: Human-in-the-Loop (HITL) Interruption Node & State Persistence.
+    Human-in-the-Loop (HITL) Interruption Node & State Persistence.
     Handles graph pauses for:
     1. Unspecified Destination
     2. Unspecified Budget / Target Tier

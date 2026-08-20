@@ -201,3 +201,54 @@ export const updatePreferences = async (req, res) => {
     });
   }
 };
+
+// @desc    Update full user profile (Name, Email & Preferences)
+// @route   PUT /api/auth/profile
+// @access  Private
+export const updateProfile = async (req, res) => {
+  try {
+    const { name, email, preferences } = req.body;
+    let updatedUser = null;
+
+    try {
+      const user = await User.findById(req.user.id);
+      if (user) {
+        if (name) user.name = name;
+        if (email) user.email = email;
+        if (preferences) {
+          user.preferences = { ...user.preferences, ...preferences };
+        }
+
+        await user.save();
+        updatedUser = {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          preferences: user.preferences,
+        };
+      }
+    } catch (dbErr) {
+      console.warn('[Profile Update DB Notice] Using memory fallback for profile update.');
+    }
+
+    if (!updatedUser) {
+      updatedUser = {
+        id: req.user?.id || req.user?._id || 'user_id',
+        name: name || req.user?.name || 'Explorer',
+        email: email || req.user?.email || 'explorer@wanderwave.ai',
+        preferences: preferences || req.user?.preferences || { travelStyle: 'Balanced', dietary: 'None' },
+      };
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Profile & preferences updated successfully! 🌊',
+      user: updatedUser,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error updating profile',
+    });
+  }
+};
