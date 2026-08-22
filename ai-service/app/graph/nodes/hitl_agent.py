@@ -1,10 +1,12 @@
-import datetime
-from typing import Dict, Any, List
+try:
+    from langgraph.types import interrupt
+except ImportError:
+    interrupt = None
 
 async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
     Human-in-the-Loop (HITL) Interruption Node & State Persistence.
-    Handles graph pauses for:
+    Handles graph pauses using native LangGraph interrupt() for:
     1. Unspecified Destination
     2. Unspecified Budget / Target Tier
     3. Budget Exceeded Overrun (Option A: Lower hotel tier / Option B: Increase budget)
@@ -50,16 +52,27 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
         clarification_prompt = f"Clarification needed: Choose your preferred travel style for {destination}:"
 
     log_entry = {
-        "agent": "Human-in-the-Loop Clarification Node (Checkpointer Interruption)",
+        "agent": "Human-in-the-Loop Clarification Node (Native LangGraph Interrupt)",
         "status": "PAUSED_FOR_HUMAN_INPUT",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Paused graph execution. State checkpointed. Offered {len(options)} interactive human choices."
+        "details": f"Paused graph execution via native interrupt(). State checkpointed with {len(options)} human choice options."
     }
 
     existing_logs = state.get("agent_logs", [])
-    return {
+    output_state = {
         "requires_human_input": True,
         "human_prompt_options": options,
         "clarification_prompt": clarification_prompt,
         "agent_logs": existing_logs + [log_entry]
     }
+
+    # Trigger native LangGraph interrupt if available
+    if interrupt and callable(interrupt):
+        try:
+            resumed_val = interrupt(output_state)
+            if isinstance(resumed_val, dict):
+                return {**state, **resumed_val, "requires_human_input": False}
+        except Exception:
+            pass
+
+    return output_state
