@@ -2,7 +2,8 @@ import os
 import datetime
 from typing import Dict, Any
 from pydantic import BaseModel, Field
-from langchain_google_genai import ChatGoogleGenerativeAI
+from pydantic import BaseModel, Field
+from app.graph.llm import get_llm
 
 class TravelIntelligenceModel(BaseModel):
     overall_score: float = Field(description="Overall destination score from 0.0 to 10.0")
@@ -29,14 +30,9 @@ async def travel_intelligence_agent_node(state: Dict[str, Any]) -> Dict[str, Any
 
     if api_key:
         try:
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=api_key,
-                temperature=0.3,
-                max_retries=1,
-                request_timeout=12
-            )
-            structured_llm = llm.with_structured_output(TravelIntelligenceModel)
+            llm = get_llm(temperature=0.3, max_retries=1, request_timeout=12)
+            if llm:
+                structured_llm = llm.with_structured_output(TravelIntelligenceModel)
 
             prompt = f"""
 System Role: You are the Travel Intelligence Agent in WanderWave's Agentic AI Trip Planner.

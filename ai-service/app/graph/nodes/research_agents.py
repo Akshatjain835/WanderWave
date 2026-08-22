@@ -2,8 +2,11 @@ import os
 import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
-from langchain_google_genai import ChatGoogleGenerativeAI
+from app.graph.llm import get_llm
 from app.rag.retriever import retrieve_hyperlocal_knowledge
+from app.graph.tools.weather_tool import get_weather_forecast
+from app.graph.tools.transport_tool import get_transport_estimates
+from app.graph.tools.places_tool import get_places_and_attractions
 
 class DailyWeatherModel(BaseModel):
     day: int = Field(description="Day index starting at 1")
@@ -42,62 +45,56 @@ async def research_agents_node(state: Dict[str, Any]) -> Dict[str, Any]:
     interests = state.get("interests", ["Sightseeing", "Cafes"])
     travel_style = state.get("travel_style", "Adventure")
 
+    # STEP 1: Execute Deterministic Data Tools First (Empirical Tool Calls)
+    raw_weather = get_weather_forecast(destination, duration)
+    raw_transport = get_transport_estimates(starting_city, destination, duration, travelers)
+    raw_places = get_places_and_attractions(destination, interests, travel_style)
+    
+    # STEP 2: Query Qdrant Cloud Vector DB for Hyper-local RAG Guidebooks
+    rag_tips = retrieve_hyperlocal_knowledge(destination, ", ".join(interests))
+
     api_key = os.getenv("GEMINI_API_KEY", "")
     research_output = None
 
-    # Query Qdrant Cloud Vector Database for Hyper-local RAG Guidebooks
-    rag_tips = retrieve_hyperlocal_knowledge(destination, ", ".join(interests))
-
+    # STEP 3: Pass Empirical Tool Facts into LLM for Synthesis & Formatting
     if api_key:
         try:
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=api_key,
-                temperature=0.3,
-                max_retries=1,
-                request_timeout=12
-            )
-            structured_llm = llm.with_structured_output(DestinationResearchModel)
+            llm = get_llm(temperature=0.3, max_retries=1, request_timeout=12)
+            if llm:
+                structured_llm = llm.with_structured_output(DestinationResearchModel)
 
-            prompt = f"""
-System Role: You are the Research Agent Node in WanderWave's Agentic AI Trip Planner.
-Your job is to dynamically research weather, transit options, and top attractions for ANY destination worldwide.
+                prompt = f"""
+System Role: You are the Tool-Integrated Research Agent in WanderWave's Agentic AI Trip Planner.
+Your job is to synthesize real empirical tool data and Qdrant RAG vector guidebooks into structured research models.
+DO NOT hallucinate weather or transportation prices — rely strictly on the provided tool facts below.
 
-Trip Parameters:
-- Destination: {destination}
-- Origin: {starting_city}
-- Duration: {duration} Days
-- Travelers: {travelers} People
-- User Interests: {', '.join(interests)}
-- Travel Style: {travel_style}
-- RAG Qdrant Vector DB Hyper-local Hidden Spots: {[t['title'] + ': ' + t['content'] for t in rag_tips]}
+Empirical Tool Facts:
+- Target Destination: {destination}
+- Origin City: {starting_city}
+- Duration: {duration} Days for {travelers} travelers
+- Raw Weather Tool Data: {raw_weather}
+- Raw Transport Tool Data: {raw_transport}
+- Raw Researched Places Tool Data: {raw_places}
+- Qdrant Vector DB RAG Guidebooks ({len(rag_tips)} matches): {rag_tips}
 
 Instructions:
-1. Provide a realistic weather forecast for {duration} days in {destination}.
-2. Provide 2-3 realistic transit modes (flight, bus, train, cab) from {starting_city} to {destination} with estimated per-person roundtrip cost in INR.
-3. Recommend 6-8 authentic, real places/attractions in {destination} including the RAG hidden spots.
-            """
-            research_output = await structured_llm.ainvoke(prompt)
+1. Synthesize the provided weather tool forecast into climate_type, weather_summary, and forecast_days.
+2. Format the transport options into transport_options preserving real cost estimates in INR.
+3. Combine top places found from the places tool and Qdrant RAG guidebooks into places_found (6-8 items).
+                """
+                research_output = await structured_llm.ainvoke(prompt)
         except Exception as e:
-            print(f"[ResearchAgents Warning] Gemini LLM call error: {e}. Utilizing fallback tool research.")
+            print(f"[ResearchAgents Warning] Gemini LLM synthesis notice: {e}. Utilizing tool data directly.")
 
     if not research_output:
-        from app.graph.tools.weather_tool import get_weather_forecast
-        from app.graph.tools.transport_tool import get_transport_estimates
-        from app.graph.tools.places_tool import get_places_and_attractions
-
-        w_data = get_weather_forecast(destination, duration)
-        t_data = get_transport_estimates(starting_city, destination, duration, travelers)
-        p_data = get_places_and_attractions(destination, interests, travel_style)
-
         weather_dict = {
             "destination": destination,
-            "climate_type": w_data.get("climate_type", "Temperate"),
-            "forecast_days": w_data.get("forecast_days", []),
-            "summary": w_data.get("summary", "")
+            "climate_type": raw_weather.get("climate_type", "Temperate"),
+            "forecast_days": raw_weather.get("forecast_days", []),
+            "summary": raw_weather.get("summary", "")
         }
-        transport_dict = t_data
-        places_dict = p_data
+        transport_dict = raw_transport
+        places_dict = raw_places
 
         # Inject RAG vector DB entries into places_dict
         for tip in rag_tips:
@@ -118,11 +115,13 @@ Instructions:
         transport_dict = [t.model_dump() for t in research_output.transport_options]
         places_dict = [p.model_dump() for p in research_output.places_found]
 
+    rag_status = "Available" if not any(t.get("is_fallback") for t in rag_tips) else "Unavailable (Fallback Used)"
+
     log_entry = {
-        "agent": "Research Agents Node (RAG + Qdrant Vector DB)",
+        "agent": "Research Agents Node (Tool Execution + Qdrant RAG)",
         "status": "SUCCESS",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Researched {destination} with RAG Qdrant Vector DB ({len(rag_tips)} hyper-local guidebooks retrieved)."
+        "details": f"Researched {destination} via Weather, Transport & Places Tools + Qdrant RAG ({len(rag_tips)} guidebooks retrieved, RAG Status: {rag_status})."
     }
 
     existing_logs = state.get("agent_logs", [])

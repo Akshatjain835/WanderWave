@@ -27,25 +27,44 @@ def retrieve_hyperlocal_knowledge(destination: str, query: str = "") -> List[Dic
 
         matched_tips = []
         for res in search_results:
-            payload = res.payload
+            payload = res.payload or {}
             matched_tips.append({
-                "destination": payload.get("destination"),
-                "category": payload.get("category"),
-                "title": payload.get("title"),
-                "content": payload.get("content"),
-                "score": round(res.score, 3) if hasattr(res, 'score') else 0.95
+                "destination": payload.get("destination", destination),
+                "category": payload.get("category", "Local Guidebook"),
+                "title": payload.get("title", f"{destination} Insider Spot"),
+                "content": payload.get("content", ""),
+                "score": round(res.score, 3) if hasattr(res, 'score') else 0.95,
+                "is_fallback": False,
+                "source": "Qdrant_Vector_DB"
             })
 
-        return matched_tips
-    except Exception as e:
-        print(f"[RAG Retriever Notice] Qdrant Cloud search fallback: {e}")
+        if matched_tips:
+            return matched_tips
+
+        # If vector DB query returned no points, provide explicit notice
+        print(f"[RAG Retriever Notice] No Qdrant matches found for '{destination}'. Using labeled fallback.")
         return [
             {
                 "destination": destination,
-                "category": "Hidden Spot",
-                "title": f"Secret {destination} Old Town & Local Cafes Walk",
-                "content": f"Explore historic side streets and authentic culinary cafes in {destination}.",
-                "score": 0.95
+                "category": "General Guide (Fallback)",
+                "title": f"Local Exploration Walk in {destination}",
+                "content": f"Explore historic streets, local markets, and popular eateries in {destination}.",
+                "score": 0.50,
+                "is_fallback": True,
+                "source": "RAG_UNAVAILABLE"
+            }
+        ]
+    except Exception as e:
+        print(f"[RAG Retriever Warning] Qdrant Cloud search unavailable: {e}. Returning explicit fallback.")
+        return [
+            {
+                "destination": destination,
+                "category": "General Guide (Fallback)",
+                "title": f"Local Exploration Walk in {destination}",
+                "content": f"Explore historic streets, local markets, and popular eateries in {destination}.",
+                "score": 0.50,
+                "is_fallback": True,
+                "source": "RAG_UNAVAILABLE"
             }
         ]
 

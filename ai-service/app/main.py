@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 from app.graph.workflow import run_requirement_analysis
+from app.graph.nodes.planner_agent import regenerate_single_day_agent
 
 app = FastAPI(
     title="WanderWave Python LangGraph AI Microservice",
@@ -149,98 +150,31 @@ async def resume_trip(request: ResumeRequest):
 @app.post("/api/graph/regenerate-day")
 async def regenerate_day(request: RegenerateDayRequest):
     """
-    Partial Re-Planning Node: Regenerates ONLY a specific day based on targeted user feedback
-    without resetting or re-synthesizing the rest of the itinerary!
+    LLM-Driven Partial Re-Planning Agent Endpoint:
+    Dynamically transforms ONLY the requested day's itinerary via Gemini structured generation
+    based on targeted user feedback, without altering surrounding days.
     """
     try:
         day_num = request.dayNumber
-        fb = request.feedback.lower()
+        fb = request.feedback
         itin = dict(request.currentItinerary)
         dest = request.destination or itin.get("destination", "Goa")
-        
+        budget_val = request.budget or itin.get("total_budget_cap_inr", 30000.0)
+
         days_list = list(itin.get("days", []))
         updated_days = []
 
         for d in days_list:
             if d.get("day_number") == day_num:
-                # Apply targeted feedback transformation
-                m = dict(d.get("morning", {}))
-                a = dict(d.get("afternoon", {}))
-                e = dict(d.get("evening", {}))
-
-                if "cheaper" in fb or "budget" in fb:
-                    m["activity"] = f"Free Scenic Walk & Sunrise Point in {dest}"
-                    m["estimated_cost_inr"] = 0
-                    m["tips"] = "Budget tip: Free entry early morning spot."
-
-                    a["activity"] = f"Budget Street Food Sampling & Local Bazaar Walk"
-                    a["estimated_cost_inr"] = 150
-                    
-                    e["activity"] = f"Sunset Beach Promenade Stroll & Tea Stand"
-                    e["estimated_cost_inr"] = 50
-                    new_day_cost = 200
-
-                elif "adventurous" in fb or "adventure" in fb:
-                    m["activity"] = f"Thrilling Water Sports & Jet Skiing at {dest} Beach"
-                    m["estimated_cost_inr"] = 1200
-                    m["tips"] = "Book authorized water sport operators."
-
-                    a["activity"] = f"ATV Quad Bike Trail & Jungle Trek"
-                    a["estimated_cost_inr"] = 850
-                    
-                    e["activity"] = f"Evening Campfire & Beach Side Barbecue"
-                    e["estimated_cost_inr"] = 600
-                    new_day_cost = 2650
-
-                elif "relaxed" in fb or "relax" in fb or "cafe" in fb:
-                    m["activity"] = f"Cozy Cafe Breakfast & Artisan Coffee Tasting in {dest}"
-                    m["estimated_cost_inr"] = 350
-                    
-                    a["activity"] = f"Heritage Architecture Walk & Boutique Shopping"
-                    a["estimated_cost_inr"] = 400
-                    
-                    e["activity"] = f"Live Acoustic Music Session at Local Seaside Lounge"
-                    e["estimated_cost_inr"] = 500
-                    new_day_cost = 1250
-
-                elif "sightseeing" in fb or "heritage" in fb:
-                    m["activity"] = f"Guided Morning Sightseeing at Iconic {dest} Forts & Temples"
-                    m["estimated_cost_inr"] = 300
-                    m["tips"] = "Hire an official local guide for historical insights."
-
-                    a["activity"] = f"Museum Visit & Royal Palace Heritage Tour"
-                    a["estimated_cost_inr"] = 450
-
-                    e["activity"] = f"Cultural Folk Dance Show & Traditional Dinner"
-                    e["estimated_cost_inr"] = 650
-                    new_day_cost = 1400
-
-                elif "less travel" in fb or "compact" in fb or "nearby" in fb:
-                    m["activity"] = f"Relaxed Morning Walking Tour within {dest} Hotel Quarter"
-                    m["estimated_cost_inr"] = 150
-                    m["tips"] = "Everything is within 5 minutes walking distance."
-
-                    a["activity"] = f"Adjacent Local Market & Craft Workshop"
-                    a["estimated_cost_inr"] = 250
-
-                    e["activity"] = f"Neighborhood Rooftop Dining & Sunset View"
-                    e["estimated_cost_inr"] = 400
-                    new_day_cost = 800
-                else:
-                    m["activity"] = f"Refined Morning Exploration of {dest} Hidden Spots"
-                    a["activity"] = f"Local Heritage Experience & Culinary Delights"
-                    e["activity"] = f"Sunset View & Souvenir Shopping in {dest}"
-                    new_day_cost = d.get("estimated_day_cost_inr", 1500)
-
-                updated_days.append({
-                    "day_number": day_num,
-                    "title": f"Day {day_num}: {dest} Custom Re-Planned ({request.feedback})",
-                    "weather_snippet": d.get("weather_snippet", "Sunny & Pleasant | 25°C"),
-                    "morning": m,
-                    "afternoon": a,
-                    "evening": e,
-                    "estimated_day_cost_inr": new_day_cost
-                })
+                # LLM-driven partial re-planning agent invocation
+                new_day = await regenerate_single_day_agent(
+                    day_number=day_num,
+                    feedback=fb,
+                    current_day=d,
+                    destination=dest,
+                    budget=budget_val
+                )
+                updated_days.append(new_day)
             else:
                 updated_days.append(d)
 

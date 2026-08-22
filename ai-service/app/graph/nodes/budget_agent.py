@@ -2,7 +2,8 @@ import os
 import datetime
 from typing import Dict, Any
 from pydantic import BaseModel, Field
-from langchain_google_genai import ChatGoogleGenerativeAI
+from pydantic import BaseModel, Field
+from app.graph.llm import get_llm
 
 class BudgetAllocationModel(BaseModel):
     destination_cost_tier: str = Field(description="Cost tier of destination e.g. High / Premium, Mid-range, Budget-friendly")
@@ -27,14 +28,9 @@ async def budget_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     if api_key:
         try:
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=api_key,
-                temperature=0.2,
-                max_retries=1,
-                request_timeout=12
-            )
-            structured_llm = llm.with_structured_output(BudgetAllocationModel)
+            llm = get_llm(temperature=0.2, max_retries=1, request_timeout=12)
+            if llm:
+                structured_llm = llm.with_structured_output(BudgetAllocationModel)
 
             prompt = f"""
 System Role: You are the Budget Allocation Agent in WanderWave's Agentic AI Trip Planner.

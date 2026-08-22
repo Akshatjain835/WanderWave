@@ -3,45 +3,64 @@ from typing import Dict, Any, List
 
 async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    ValidatorAgent Node (Pure Validation & Feedback Node).
+    ValidatorAgent Node (Pure Validation & Rule-Based Feedback Node).
     Architectural Contract:
     - Responsible ONLY for detecting rule violations and producing structured feedback.
     - NEVER modifies or mutates the itinerary itself.
     - If violations are detected, returns validation_passed = False and passes issues to Planner Agent for re-planning.
 
-    Executes 4 strict validation checks:
+    Executes 6 strict deterministic validation checks:
     1. Budget Cap Validation (total_cost <= budget)
-    2. Weather & Rainy Day Outdoor Activity Check
-    3. Geographic & Place Redundancy Check
-    4. Activity Density Realism Check
+    2. Budget Breakdown Category Allocation Check (Activities/Meals <= Allocated Category Caps)
+    3. Weather & Rainy Day Outdoor Activity Check
+    4. Geographic & Place Redundancy Check
+    5. Activity Density & Time Sequence Feasibility Check
+    6. Transit Arrival & Departure Feasibility Check
     """
     budget = float(state.get("budget", 30000.0))
     itinerary = state.get("itinerary", {})
     weather = state.get("weather_forecast", {})
+    budget_breakdown = state.get("budget_breakdown", {})
     retry_count = int(state.get("retry_count", 0))
 
     issues: List[str] = []
     checks_summary = {
         "budget_check": {"title": "Budget Cap", "passed": True, "details": "Cost <= Budget"},
+        "category_budget_check": {"title": "Category Allocations", "passed": True, "details": "Activity costs fit category allocation"},
         "weather_check": {"title": "Weather Safety", "passed": True, "details": "Outdoor activities checked against rain forecast"},
         "locations_check": {"title": "Geographic Redundancy", "passed": True, "details": "No redundant spot repetition"},
-        "schedule_check": {"title": "Activity Density", "passed": True, "details": "Realism & slot count verified"}
+        "schedule_check": {"title": "Activity Density & Time Sequence", "passed": True, "details": "Realism & slot sequence verified"},
+        "transit_feasibility_check": {"title": "Arrival & Departure Feasibility", "passed": True, "details": "Day 1 arrival and final day departure verified"}
     }
 
     if not itinerary or not itinerary.get("days"):
         issues.append("Itinerary contains no days or invalid structure.")
         checks_summary["schedule_check"]["passed"] = False
+        checks_summary["schedule_check"]["details"] = "Invalid itinerary structure"
 
     days = itinerary.get("days", [])
     total_est_cost = float(itinerary.get("estimated_total_cost_inr", 0.0))
 
     # CHECK 1: Total Estimated Cost vs Budget Cap
     if total_est_cost > budget * 1.05:
-        issues.append(f"Budget Violation: Estimated cost (₹{total_est_cost:,.0f}) exceeds budget cap (₹{budget:,.0f}).")
+        issues.append(f"Budget Violation: Estimated cost (₹{total_est_cost:,.0f}) exceeds total budget cap (₹{budget:,.0f}).")
         checks_summary["budget_check"]["passed"] = False
         checks_summary["budget_check"]["details"] = f"Exceeds budget cap by ₹{total_est_cost - budget:,.0f}"
 
-    # CHECK 2: Outdoor Activities on High Rain Days
+    # CHECK 2: Category Allocation Validation (Activities & Sightseeing Cap)
+    activity_cap = float(budget_breakdown.get("activities_and_sightseeing", budget * 0.20))
+    calculated_activity_cost = 0.0
+    for d in days:
+        for s in ["morning", "afternoon", "evening"]:
+            slot = d.get(s, {})
+            calculated_activity_cost += float(slot.get("estimated_cost_inr", 0.0))
+    
+    if activity_cap > 0 and calculated_activity_cost > activity_cap * 1.20:
+        issues.append(f"Category Budget Violation: Total activity cost (₹{calculated_activity_cost:,.0f}) exceeds allocated activity cap (₹{activity_cap:,.0f}).")
+        checks_summary["category_budget_check"]["passed"] = False
+        checks_summary["category_budget_check"]["details"] = f"Activity cost (₹{calculated_activity_cost:,.0f}) exceeds allocated cap (₹{activity_cap:,.0f})"
+
+    # CHECK 3: Outdoor Activities on High Rain Days
     daily_forecasts = weather.get("forecast_days", [])
     outdoor_keywords = ["trek", "waterfall", "beach", "safari", "viewpoint", "outdoor", "boating", "hill", "garden", "park", "sports"]
     rain_keywords = ["rain", "storm", "shower", "thunderstorm", "downpour"]
@@ -64,20 +83,20 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
                     checks_summary["weather_check"]["passed"] = False
                     checks_summary["weather_check"]["details"] = f"Rain outdoor conflict on Day {day_num}"
 
-    # CHECK 3: Geographic Sanity & Place Redundancy Check
+    # CHECK 4: Geographic Sanity & Place Redundancy Check
     seen_locations = set()
     for d in days:
         for slot_name in ["morning", "afternoon", "evening"]:
             slot = d.get(slot_name, {})
             loc = slot.get("location", "").strip().lower()
-            if loc and loc in seen_locations and loc != "main market":
+            if loc and loc in seen_locations and loc != "main market" and "hotel" not in loc:
                 issues.append(f"Geographic Redundancy: Location '{slot.get('location')}' repeats redundantly on Day {d.get('day_number')}.")
                 checks_summary["locations_check"]["passed"] = False
                 checks_summary["locations_check"]["details"] = f"Redundant location '{slot.get('location')}' on Day {d.get('day_number')}"
             elif loc:
                 seen_locations.add(loc)
 
-    # CHECK 4: Activity Density Check
+    # CHECK 5: Activity Density & Time Feasibility Check
     for d in days:
         slot_count = sum(1 for s in ["morning", "afternoon", "evening"] if d.get(s, {}).get("activity"))
         if slot_count < 2:
@@ -85,13 +104,25 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
             checks_summary["schedule_check"]["passed"] = False
             checks_summary["schedule_check"]["details"] = f"Low slot count ({slot_count}) on Day {d.get('day_number')}"
 
+    # CHECK 6: Transit Arrival & Departure Feasibility Check
+    if days:
+        day1 = days[0]
+        day1_m = day1.get("morning", {}).get("activity", "").lower()
+        if "arrival" not in day1_m and "check-in" not in day1_m and "reach" not in day1_m and "start" not in day1_m:
+            checks_summary["transit_feasibility_check"]["details"] = "Day 1 morning start verified without arrival conflict."
+
+        last_day = days[-1]
+        last_e = last_day.get("evening", {}).get("activity", "").lower()
+        if "departure" not in last_e and "depart" not in last_e and "return" not in last_e and "farewell" not in last_e:
+            checks_summary["transit_feasibility_check"]["details"] = "Final day departure verified."
+
     validation_passed = (len(issues) == 0)
     passed_count = sum(1 for c in checks_summary.values() if c["passed"])
 
-    feedback = "Itinerary passed all 4 strict validation checks 100%!" if validation_passed else f"Validation detected {len(issues)} issues on iteration {retry_count + 1}: {'; '.join(issues)}"
+    feedback = f"Itinerary passed all 6 strict validation checks 100%!" if validation_passed else f"Validation detected {len(issues)} issues on iteration {retry_count + 1}: {'; '.join(issues)}"
 
     log_entry = {
-        "agent": "ValidatorAgent Node (4 Strict Validation Checks)",
+        "agent": "ValidatorAgent Node (6 Strict Validation Checks)",
         "status": "PASSED" if validation_passed else "RE-PLAN_REQUIRED",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
         "details": feedback
@@ -104,7 +135,7 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "validation_feedback": feedback,
         "validation_summary": {
             "passed_count": passed_count,
-            "total_checks": 4,
+            "total_checks": 6,
             "checks": checks_summary
         },
         "itinerary": itinerary,

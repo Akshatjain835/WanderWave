@@ -2,7 +2,8 @@ import os
 import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
-from langchain_google_genai import ChatGoogleGenerativeAI
+from pydantic import BaseModel, Field
+from app.graph.llm import get_llm
 
 class ActivitySlotModel(BaseModel):
     time: str = Field(description="Time slot string e.g. 09:00 AM - 12:30 PM")
@@ -51,14 +52,9 @@ async def planner_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     if api_key:
         try:
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=api_key,
-                temperature=0.3,
-                max_retries=1,
-                request_timeout=20
-            )
-            structured_llm = llm.with_structured_output(FullItineraryModel)
+            llm = get_llm(temperature=0.3, max_retries=1, request_timeout=20)
+            if llm:
+                structured_llm = llm.with_structured_output(FullItineraryModel)
 
             place_names = [p.get('name') for p in places if p.get('name')]
             place_context_str = ", ".join(place_names) if place_names else f"top attractions in {destination}"
@@ -200,4 +196,81 @@ CRITICAL INSTRUCTIONS:
     return {
         "itinerary": final_itinerary,
         "agent_logs": existing_logs + [log_entry]
+    }
+
+async def regenerate_single_day_agent(
+    day_number: int,
+    feedback: str,
+    current_day: Dict[str, Any],
+    destination: str = "Goa",
+    budget: float = 30000.0
+) -> Dict[str, Any]:
+    """
+    Partial Re-Planner Agent:
+    Dynamically re-plans ONLY a single day using LLM structured generation based on specific user feedback.
+    """
+    api_key = os.getenv("GEMINI_API_KEY", "")
+    if api_key:
+        try:
+            llm = get_llm(temperature=0.4, max_retries=1, request_timeout=15)
+            if llm:
+                structured_llm = llm.with_structured_output(DayPlanModel)
+                prompt = f"""
+System Role: You are the Partial Re-Planner Agent in WanderWave's Agentic AI Trip Planner.
+Your job is to regenerate ONLY Day {day_number} of a trip to {destination} based on specific traveler feedback.
+
+Target Day to Re-Plan: Day {day_number}
+Target Destination: {destination}
+User Feedback / Constraint Modification: "{feedback}"
+
+Current Draft for Day {day_number}:
+- Morning: {current_day.get('morning', {})}
+- Afternoon: {current_day.get('afternoon', {})}
+- Evening: {current_day.get('evening', {})}
+- Weather: {current_day.get('weather_snippet', 'Sunny')}
+
+Instructions:
+1. Modify the morning, afternoon, and evening activity slots for Day {day_number} to directly address the user feedback "{feedback}".
+2. Ensure all activity descriptions are realistic, localized to {destination}, and include estimated per-person costs in INR.
+3. Keep day_number={day_number}.
+                """
+                new_day_model = await structured_llm.ainvoke(prompt)
+                return new_day_model.model_dump()
+        except Exception as e:
+            print(f"[Partial Re-Planner Notice] Gemini LLM call error: {e}. Falling back to dynamic rule adjustment.")
+
+    # Rule-based fallback if LLM is unavailable
+    m = dict(current_day.get("morning", {}))
+    a = dict(current_day.get("afternoon", {}))
+    e = dict(current_day.get("evening", {}))
+
+    fb_lower = feedback.lower()
+    if "cheaper" in fb_lower or "budget" in fb_lower:
+        m["activity"] = f"Scenic Nature Walk & Local Viewpoint in {destination}"
+        m["estimated_cost_inr"] = 0
+        a["activity"] = f"Street Food Sampling & Traditional Bazaar Exploration"
+        a["estimated_cost_inr"] = 150
+        e["activity"] = f"Sunset Promenade Stroll"
+        e["estimated_cost_inr"] = 50
+    elif "adventurous" in fb_lower or "adventure" in fb_lower:
+        m["activity"] = f"Outdoor Adventure & Trekking/Water Sports in {destination}"
+        m["estimated_cost_inr"] = 1200
+        a["activity"] = f"ATV Quad Trail or Local Exploration"
+        a["estimated_cost_inr"] = 850
+        e["activity"] = f"Evening Outdoor Campfire & Barbecue"
+        e["estimated_cost_inr"] = 600
+    else:
+        m["activity"] = f"Custom Morning Exploration in {destination} ({feedback})"
+        a["activity"] = f"Custom Afternoon Cultural Experience ({feedback})"
+        e["activity"] = f"Custom Evening Sunset Walk ({feedback})"
+
+    total_c = m.get("estimated_cost_inr", 200) + a.get("estimated_cost_inr", 300) + e.get("estimated_cost_inr", 400)
+    return {
+        "day_number": day_number,
+        "title": f"Day {day_number}: {destination} Custom Re-Planned ({feedback})",
+        "weather_snippet": current_day.get("weather_snippet", "Sunny & Pleasant | 24°C"),
+        "morning": m,
+        "afternoon": a,
+        "evening": e,
+        "estimated_day_cost_inr": total_c
     }

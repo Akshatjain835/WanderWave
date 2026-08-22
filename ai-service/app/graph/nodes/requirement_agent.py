@@ -2,8 +2,8 @@ import os
 import datetime
 from typing import Dict, Any, List
 from pydantic import BaseModel, Field
-from langchain_google_genai import ChatGoogleGenerativeAI
 from app.graph.state import TripState
+from app.graph.llm import get_llm
 
 class RequirementAnalysisModel(BaseModel):
     destination: str = Field(description="Primary travel destination city or region worldwide, e.g. Paris, Tokyo, Manali, Goa, Dubai")
@@ -25,14 +25,9 @@ async def requirement_agent_node(state: TripState) -> Dict[str, Any]:
 
     if api_key:
         try:
-            llm = ChatGoogleGenerativeAI(
-                model="gemini-2.0-flash",
-                google_api_key=api_key,
-                temperature=0.2,
-                max_retries=1,
-                request_timeout=10
-            )
-            structured_llm = llm.with_structured_output(RequirementAnalysisModel)
+            llm = get_llm(temperature=0.2, max_retries=1, request_timeout=10)
+            if llm:
+                structured_llm = llm.with_structured_output(RequirementAnalysisModel)
 
             prompt = f"""
 System Role: You are the Requirement Analyzer Agent in WanderWave's Agentic AI Trip Planner.

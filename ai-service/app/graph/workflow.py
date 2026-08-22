@@ -9,8 +9,40 @@ from app.graph.nodes.planner_agent import planner_agent_node
 from app.graph.nodes.hitl_agent import human_clarification_node
 from app.graph.nodes.validator_agent import validator_agent_node
 
-# MemorySaver Checkpointer for State Persistence
-memory_checkpointer = MemorySaver()
+import os
+
+# LangGraph Checkpointer Strategy: Supports RedisSaver in production and MemorySaver in dev
+def get_checkpointer():
+    """
+    Initializes state checkpointer for LangGraph state graph.
+    If REDIS_URL is configured, connects to Redis for durable persistent thread checkpointing.
+    Otherwise, gracefully falls back to MemorySaver for fast, zero-dependency in-memory state tracking.
+    """
+    redis_url = os.getenv("REDIS_URL", "").strip()
+    if redis_url:
+        if "upstash.io" in redis_url and redis_url.startswith("redis://"):
+            redis_url = redis_url.replace("redis://", "rediss://", 1)
+
+        try:
+            try:
+                from langgraph.checkpoint.redis.aio import AsyncRedisSaver
+                checkpointer = AsyncRedisSaver.from_conn_info(url=redis_url)
+                print(f"[Workflow Notice] Successfully connected to Async Upstash Cloud Redis Checkpointer for WanderWave.")
+                return checkpointer
+            except Exception:
+                from redis import Redis
+                from langgraph.checkpoint.redis import RedisSaver
+                conn = Redis.from_url(redis_url)
+                checkpointer = RedisSaver(conn)
+                print(f"[Workflow Notice] Successfully connected to Upstash Cloud Redis Checkpointer for WanderWave.")
+                return checkpointer
+        except Exception as e:
+            print(f"[Workflow Warning] Using MemorySaver checkpointer (Async Redis upgrade available): {e}")
+            return MemorySaver()
+
+    return MemorySaver()
+
+memory_checkpointer = get_checkpointer()
 
 def route_after_requirement(state: TripState) -> str:
     """
