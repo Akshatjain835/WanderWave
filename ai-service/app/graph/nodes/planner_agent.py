@@ -172,6 +172,18 @@ CRITICAL INSTRUCTIONS:
                 "estimated_day_cost_inr": m_cost + a_cost + e_cost
             })
 
+        total_stay_cost = float(budget_breakdown.get("accommodation_stay", budget * 0.35))
+        total_transit_cost = float(budget_breakdown.get("transportation", budget * 0.25))
+        total_food_cost = float(budget_breakdown.get("food_and_meals", budget * 0.20))
+        cushion = float(budget_breakdown.get("emergency_cushion", budget * 0.05))
+
+        total_activities_cost = 0.0
+        for d in days_plan:
+            for s in ["morning", "afternoon", "evening"]:
+                total_activities_cost += float(d.get(s, {}).get("estimated_cost_inr", 0.0)) * travelers
+
+        itemized_total_cost = round(total_stay_cost + total_transit_cost + total_food_cost + total_activities_cost + cushion, 2)
+
         final_itinerary = {
             "trip_title": f"{duration}-Day {travel_style} Exploration of {destination} from {starting_city}",
             "destination": destination,
@@ -179,7 +191,7 @@ CRITICAL INSTRUCTIONS:
             "duration_days": duration,
             "travelers_count": travelers,
             "total_budget_cap_inr": budget,
-            "estimated_total_cost_inr": round(budget * 0.88, 2),
+            "estimated_total_cost_inr": itemized_total_cost,
             "days": days_plan
         }
     else:

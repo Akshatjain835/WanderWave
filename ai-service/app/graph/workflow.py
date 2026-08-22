@@ -128,3 +128,16 @@ async def run_requirement_analysis(user_request: str, user_long_term_preferences
     config = {"configurable": {"thread_id": thread_id}}
     final_state = await trip_graph_app.ainvoke(initial_state, config=config)
     return final_state
+
+async def resume_requirement_analysis(user_decision: str, thread_id: str = "default_session"):
+    """
+    Resumes a paused thread checkpoint using native LangGraph Command(resume=...).
+    """
+    from langgraph.types import Command
+    config = {"configurable": {"thread_id": thread_id}}
+    try:
+        final_state = await trip_graph_app.ainvoke(Command(resume={"destination": user_decision}), config=config)
+        return final_state
+    except Exception:
+        resumed_prompt = f"Plan a trip to {user_decision}"
+        return await run_requirement_analysis(resumed_prompt, thread_id=thread_id)

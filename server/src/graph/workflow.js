@@ -1,5 +1,11 @@
 /**
- * Fully Dynamic Requirement Analysis, Live Open-Meteo Weather API & Fallback Engine
+ * ARCHITECTURAL NOTICE:
+ * Python FastAPI microservice (ai-service/app/graph/workflow.py) is the sole primary
+ * LangGraph Multi-Agent Orchestration Engine for WanderWave.
+ * 
+ * Express Backend (server/src) serves as the API Gateway, Authentication (JWT),
+ * MongoDB Atlas persistence, and proxy to the Python FastAPI microservice.
+ * This file acts as an offline secondary fallback solver.
  */
 export const runRequirementAnalysis = async (userRequest = '', userLongTermPreferences = {}, payloadObj = {}) => {
   const text = (userRequest || '').toLowerCase().trim();
@@ -144,12 +150,51 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     budget_advice: `Balanced budget allocation for ${destination} over ${duration} days.`,
   };
 
+  const DESTINATION_ATTRACTIONS = {
+    goa: [
+      { m: 'Arrival in Goa, Check-in & Baga Beach Welcome Stroll', mL: 'North Goa', a: 'Fort Aguada Visit & Panjim Latin Quarter Walk', aL: 'Panjim', e: 'Sunset at Anjuna Beach & Shack Dinner', eL: 'Anjuna Beach' },
+      { m: 'Dudhsagar Waterfalls Trek & Jungle Safari', mL: 'Sanguem', a: 'Spice Plantation Tour & Goan Buffet Lunch', aL: 'Ponda', e: 'Mandovi River Sunset Cruise & Casino Visit', eL: 'Panjim Promenade' },
+      { m: 'Calangute Beach Water Sports & Parasailing', mL: 'Calangute', a: 'Old Goa Basilica of Bom Jesus Heritage Walk', aL: 'Old Goa', e: 'Arpora Night Market & Club Evening', eL: 'Arpora' },
+      { m: 'Palolem Beach Relaxation & Boat Ride', mL: 'South Goa', a: 'Cabo de Rama Fort Viewpoint', aL: 'Canacona', e: 'Farewell Seafood Dinner & Beach Stroll', eL: 'Palolem' },
+    ],
+    manali: [
+      { m: 'Arrival in Manali, Check-in & Hadimba Temple Visit', mL: 'Old Manali', a: 'Mall Road Exploration & Local Pahadi Lunch', aL: 'Mall Road', e: 'Old Manali Riverside Cafe Hopping', eL: 'Old Manali' },
+      { m: 'Solang Valley Adventure Sports & Cable Car Ride', mL: 'Solang Valley', a: 'Rohtang Pass Snow Viewpoint Photography', aL: 'Rohtang Pass', e: 'Return to Manali & Bonfire Dinner', eL: 'Manali Resort' },
+      { m: 'Jogini Waterfall Trek & Vashisht Village Walk', mL: 'Vashisht', a: 'Relaxation in Vashisht Hot Springs', aL: 'Vashisht', e: 'Local Handicrafts & Woolens Shopping', eL: 'Manali Market' },
+      { m: 'Naggar Castle Heritage Tour & Art Gallery', mL: 'Naggar', a: 'Kullu River Rafting Adventure', aL: 'Kullu Valley', e: 'Farewell Dinner & Departure Prep', eL: 'Mall Road' },
+    ],
+    jaipur: [
+      { m: 'Arrival in Jaipur & Hawa Mahal Photo Stop', mL: 'Pink City', a: 'City Palace & Jantar Mantar Guided Tour', aL: 'Jaipur Center', e: 'Chokhi Dhani Ethnic Rajasthani Village Experience', eL: 'Tonk Road' },
+      { m: 'Amber Fort Elephant Ride & Sheesh Mahal Tour', mL: 'Amer', a: 'Jal Mahal Water Palace Viewpoint & Nahargarh Fort', aL: 'Amer Road', e: 'Sunset at Jaigarh Fort & Pink City Bazaar Walk', eL: 'Johari Bazaar' },
+      { m: 'Albert Hall Museum Visit & Ram Niwas Garden', mL: 'Museum Road', a: 'Patrika Gate Photography & Local Gem Shopping', aL: 'Jawahar Circle', e: 'Traditional Thali Dinner & Farewell Stroll', eL: 'MI Road' },
+    ],
+    tokyo: [
+      { m: 'Arrival in Tokyo, Senso-ji Temple & Nakamise Shopping', mL: 'Asakusa', a: 'Tokyo Skytree Observation Deck & Solamachi Mall', aL: 'Oshiage', e: 'Shinjuku Omoide Yokocho Alley Izakaya Dinner', eL: 'Shinjuku' },
+      { m: 'Meiji Jingu Shrine Peaceful Walk & Harajuku Culture', mL: 'Harajuku', a: 'Shibuya Crossing Famous Scramble & Hachiko Statue', aL: 'Shibuya', e: 'Roppongi Hills Sunset View & Ramen Dinner', eL: 'Roppongi' },
+      { m: 'Akihabara Electric Town & Anime Culture Tour', mL: 'Akihabara', a: 'Ueno Park Museums & Ameyoko Market Walk', aL: 'Ueno', e: 'Ginza High-End District Stroll & Sushi Dinner', eL: 'Ginza' },
+    ],
+    paris: [
+      { m: 'Arrival in Paris & Eiffel Tower Summit View', mL: 'Champ de Mars', a: 'Seine River Cruise & Louvre Museum Masterpieces Tour', aL: '1st Arrondissement', e: 'Champs-Élysées Evening Stroll & Arc de Triomphe Sunset', eL: '8th Arrondissement' },
+      { m: 'Montmartre Artists Quarter & Sacré-Cœur Basilica', mL: 'Montmartre', a: 'Notre-Dame Cathedral & Latin Quarter Bookshops Walk', aL: '5th Arrondissement', e: 'Le Marais Boutique Shopping & Bistro Dinner', eL: 'Le Marais' },
+      { m: 'Palace of Versailles Grand Apartments & Gardens Day Trip', mL: 'Versailles', a: 'Versailles Musical Fountains & Hall of Mirrors', aL: 'Versailles', e: 'Return to Paris & Farewell French Wine Tasting', eL: 'Left Bank' },
+    ],
+    dubai: [
+      { m: 'Arrival in Dubai & Dubai Mall Aquarium Visit', mL: 'Downtown Dubai', a: 'Burj Khalifa At The Top 124th Floor View', aL: 'Downtown Dubai', e: 'Dubai Fountain Light Show & Souk Al Bahar Dinner', eL: 'Downtown Dubai' },
+      { m: 'Desert Safari 4x4 Dune Bashing & Sandboarding', mL: 'Lahbab Desert', a: 'Camel Riding & Arabic Henna Cultural Camp', aL: 'Desert Camp', e: 'Belly Dance & Tanoura Show with BBQ Buffet Dinner', eL: 'Desert Camp' },
+      { m: 'Palm Jumeirah & Atlantis Monorail Ride', mL: 'Palm Jumeirah', a: 'Dubai Miracle Garden Floral Displays', aL: 'Al Barsha', e: 'Dubai Marina Yacht Cruise & Sunset Dinner', eL: 'Dubai Marina' },
+    ],
+  };
+
+  const destKey = destination.toLowerCase().trim();
+  const attractionList = DESTINATION_ATTRACTIONS[destKey] || DESTINATION_ATTRACTIONS.goa;
+
   // Itinerary Generation
   const days = Array.from({ length: duration }, (_, i) => {
     const dNum = i + 1;
     const isFirst = dNum === 1;
     const isLast = dNum === duration;
     const dayWeather = weatherForecastDays[i] || weatherForecastDays[0];
+    const spot = attractionList[(dNum - 1) % attractionList.length];
 
     return {
       day_number: dNum,
@@ -157,28 +202,24 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
       weather_snippet: `${dayWeather.condition} | ${dayWeather.temp_max_c}°C`,
       morning: {
         time: '09:00 AM - 12:30 PM',
-        activity: isFirst
-          ? `Arrival in ${destination}, Hotel Check-in & Welcome Breakfast`
-          : `Morning Sightseeing at Top ${destination} Landmarks & Scenic Spots`,
-        location: `${destination} City Center`,
+        activity: spot.m,
+        location: spot.mL,
         estimated_cost_inr: Math.round((budget * 0.15) / duration),
         tips: isFirst ? 'Check in early and freshen up.' : `Start early to experience ${destination} before afternoon crowds.`,
       },
       afternoon: {
         time: '01:30 PM - 04:30 PM',
-        activity: `Authentic ${destination} Local Cuisine Lunch & Cultural Heritage Walk`,
-        location: `${destination} Old Town Quarter`,
+        activity: spot.a,
+        location: spot.aL,
         estimated_cost_inr: Math.round((budget * 0.10) / duration),
         tips: `Try traditional local dishes at popular eateries in ${destination}.`,
       },
       evening: {
         time: '06:00 PM - 09:00 PM',
-        activity: isLast
-          ? `Souvenir Shopping & Final Dinner in ${destination}`
-          : `Sunset Point View & Evening Stroll at ${destination} Local Market`,
-        location: `${destination} Main Promenade`,
+        activity: spot.e,
+        location: spot.eL,
         estimated_cost_inr: Math.round((budget * 0.10) / duration),
-        tips: `Enjoy the vibrant evening street lights and atmosphere of ${destination}.`,
+        tips: `Enjoy the vibrant evening atmosphere of ${destination}.`,
       },
       estimated_day_cost_inr: Math.round((budget * 0.35) / duration),
     };

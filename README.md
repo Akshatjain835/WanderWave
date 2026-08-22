@@ -24,26 +24,26 @@ WanderWave uses a 3-tier microservice architecture to decouple user state manage
                                      │ HTTP / REST
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                     Node.js / Express REST Backend                      │
-│            (Auth, Currency Microservice, MongoDB Persistence)           │
+│              Node.js / Express API Gateway & Microservices              │
+│       (JWT Auth, Currency Rates Microservice, MongoDB Persistence)      │
 └────────────────────────────────────┬────────────────────────────────────┘
                                      │ Async HTTP JSON API
                                      ▼
 ┌─────────────────────────────────────────────────────────────────────────┐
-│                  Python FastAPI + LangGraph Orchestrator                │
-│         (Stateful Checkpointer & Cyclic Multi-Agent Workflow)           │
+│          Python FastAPI + LangGraph Sole AI Orchestration Engine        │
+│       (Stateful Upstash Redis Checkpointer & Cyclic Multi-Agent)        │
 │                                                                         │
 │  Requirement Agent ➔ Research Agent ➔ Travel Intelligence Agent        │
 │                                                   ↓                     │
 │  Validator Agent ◄── Re-plan Loop ◄── Planner Agent ◄── Budget Agent   │
 │       │                                                                 │
-│       └── HITL Clarification Node (Pauses graph execution if missing)   │
+│       └── Native interrupt() HITL Node (Yields control to checkpointer) │
 └────────────┬──────────────────────┬──────────────────────┬──────────────┘
              │                      │                      │
              ▼                      ▼                      ▼
     ┌────────────────┐    ┌──────────────────┐    ┌─────────────────┐
-    │ Qdrant Vector  │    │  Weather/Places/ │    │  Google Gemini  │
-    │ DB (RAG)       │    │  Transport Tools │    │  Flash/Pro LLM  │
+    │ Qdrant Vector  │    │ Dynamic Geodesic │    │  Google Gemini  │
+    │ DB (768-dim)   │    │ Transport Engine │    │  Flash/Pro LLM  │
     └────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 

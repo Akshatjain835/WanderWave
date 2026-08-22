@@ -46,14 +46,26 @@ export const Dashboard = () => {
   }, []);
 
   useEffect(() => {
-    fetchDestinationImage('Goa').then((url) => setHeroCoverImg(url));
-    const cities = ['Goa', 'Jaipur', 'Manali'];
-    cities.forEach((city) => {
-      fetchDestinationImage(city).then((url) => {
-        setRecentCityImages((prev) => ({ ...prev, [city]: url }));
+    if (userTrips && userTrips.length > 0) {
+      const latestDest = userTrips[0].destination || 'Goa';
+      fetchDestinationImage(latestDest).then((url) => setHeroCoverImg(url));
+      
+      const tripCities = Array.from(new Set(userTrips.map(t => t.destination).filter(Boolean)));
+      tripCities.forEach((city) => {
+        fetchDestinationImage(city).then((url) => {
+          setRecentCityImages((prev) => ({ ...prev, [city]: url }));
+        });
       });
-    });
-  }, []);
+    } else {
+      fetchDestinationImage('Goa').then((url) => setHeroCoverImg(url));
+      const cities = ['Goa', 'Jaipur', 'Manali', 'Tokyo', 'Paris', 'Dubai'];
+      cities.forEach((city) => {
+        fetchDestinationImage(city).then((url) => {
+          setRecentCityImages((prev) => ({ ...prev, [city]: url }));
+        });
+      });
+    }
+  }, [userTrips]);
 
   const totalTripsCount = userTrips.length;
   const totalSpendPlanned = userTrips.reduce((acc, curr) => acc + (curr.budget || 0), 0);

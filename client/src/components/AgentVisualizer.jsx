@@ -87,14 +87,37 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
       title: 'Validator Agent',
       icon: ShieldCheck,
       status: isComplete ? 'SUCCESS' : activeStep === 5 ? 'RUNNING' : 'PENDING',
-      tools: ['4 Strict Rule Checks'],
-      retrieved: '4/4 Validation Checks Passed',
-      execution: '0.38 sec',
-      summary: 'Evaluated budget cap, rain outdoor safety, geographic redundancy & density',
+      tools: ['Budget Cap Rule', 'Category Allocation Rule', 'Weather Safety Rule', 'Geographic Redundancy Rule', 'Density & Sequence Rule', 'Arrival/Departure Rule'],
+      retrieved: '6/6 Strict Validation Checks Passed',
+      execution: '0.12 sec',
+      summary: 'Decoupled pure validation node enforcing 6 strict deterministic rules before completion',
     },
   ];
 
-  const currentNode = nodes.find((n) => n.id === selectedNodeDetails) || nodes[1];
+  const dynamicNodes = nodes.map((baseNode) => {
+    const matchingLog = agentLogs?.slice().reverse().find((l) =>
+      l.agent?.toLowerCase().includes(baseNode.id) ||
+      l.agent?.toLowerCase().includes(baseNode.title.toLowerCase().replace(' agent', ''))
+    );
+
+    let status = baseNode.status;
+    let summary = baseNode.summary;
+
+    if (matchingLog) {
+      status = matchingLog.status === 'PAUSED_FOR_HUMAN_INPUT'
+        ? 'HITL_PAUSED'
+        : matchingLog.status === 'RE-PLAN_REQUIRED'
+        ? 'RE-PLANNING'
+        : matchingLog.status === 'SUCCESS' || matchingLog.status === 'PASSED'
+        ? 'SUCCESS'
+        : matchingLog.status;
+      summary = matchingLog.details || baseNode.summary;
+    }
+
+    return { ...baseNode, status, summary };
+  });
+
+  const currentNode = dynamicNodes.find((n) => n.id === selectedNodeDetails || n.title === selectedNodeDetails) || dynamicNodes[0];
 
   const calculateProgress = () => {
     if (isComplete) return 100;
@@ -336,8 +359,8 @@ export const AgentVisualizer = ({ activeStep, agentLogs, isComplete, requiresHum
               </div>
 
               <div className="p-3 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-[10px] text-slate-400 block uppercase font-bold">LLM Model & Tokens</span>
-                <p className="text-indigo-300 font-extrabold text-xs mt-1">Gemini 3.6 Flash (~420 tokens)</p>
+                <span className="text-[10px] text-slate-400 block uppercase font-bold">LLM Model & Engine</span>
+                <p className="text-indigo-300 font-extrabold text-xs mt-1">Gemini 1.5 Flash (Structured)</p>
               </div>
             </div>
           </div>

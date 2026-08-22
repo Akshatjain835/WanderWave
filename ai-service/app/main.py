@@ -110,14 +110,7 @@ async def analyze_trip(request: AnalyzeRequest):
 async def resume_trip(request: ResumeRequest):
     try:
         dest = request.destination or request.user_decision or "Goa"
-        b_cap = request.budget or 30000.0
-        dur = request.duration or 5
-        t_count = request.travelers or 2
-        orig = request.startingCity or "Delhi"
-        style = request.travelStyle or "Adventure"
-
-        resumed_prompt = f"Plan a {dur} day trip to {dest} from {orig} under {b_cap} for {t_count} people with {style} style"
-        result_state = await run_requirement_analysis(resumed_prompt, {"travelStyle": style}, requires_hitl=False)
+        result_state = await resume_requirement_analysis(dest, thread_id="default_session")
 
         return {
             "success": True,

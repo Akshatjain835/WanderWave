@@ -26,6 +26,40 @@ import {
 import api from '../services/api';
 import { fetchDestinationImage } from '../services/imageService';
 
+const CURRENCY_SYMBOLS = {
+  INR: '₹',
+  USD: '$',
+  EUR: '€',
+  GBP: '£',
+  AED: 'د.إ',
+};
+
+const CONVERSION_RATES = {
+  INR: 1,
+  USD: 1 / 83.75,
+  EUR: (1 / 83.75) * 0.92,
+  GBP: (1 / 83.75) * 0.78,
+  AED: (1 / 83.75) * 3.67,
+};
+
+const getDisplayCurrency = (itin) => {
+  return itin?.inputCurrency || itin?.displayCurrency || itin?.currency || itin?.user_currency || 'INR';
+};
+
+const formatPrice = (amountInINR, itin) => {
+  const currencyCode = getDisplayCurrency(itin);
+  const symbol = CURRENCY_SYMBOLS[currencyCode] || '$';
+  const rate = CONVERSION_RATES[currencyCode] || 1;
+  const num = Number(amountInINR) || 0;
+
+  if (currencyCode === 'INR') {
+    return `₹${Math.round(num).toLocaleString()}`;
+  }
+
+  const converted = Math.round(num * rate);
+  return `${symbol}${converted.toLocaleString()}`;
+};
+
 const DESTINATION_PLACES = {
   goa: ['Baga Beach', 'Fort Aguada', 'Panjim', 'Dudhsagar Waterfalls', 'Anjuna Beach', 'Calangute'],
   manali: ['Solang Valley', 'Rohtang Pass', 'Hadimba Temple', 'Old Manali Cafes', 'Jogini Waterfall'],
@@ -349,7 +383,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
           <div className="space-y-3 pt-2">
             <div className="flex flex-wrap items-center gap-3 text-xs sm:text-sm font-semibold text-slate-200 font-mono">
               <span className="bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-slate-800 text-emerald-400 font-black text-base">
-                ₹{Math.round((itinerary.estimated_total_cost_inr || itinerary.total_budget_cap_inr * 0.94) || 23400).toLocaleString()} / ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()} INR
+                {formatPrice(itinerary.estimated_total_cost_inr || (itinerary.total_budget_cap_inr * 0.94) || 23400, itinerary)} / {formatPrice(itinerary.total_budget_cap_inr || 25000, itinerary)}
               </span>
               <span className="bg-slate-900/90 backdrop-blur-md px-3 py-2 rounded-xl border border-slate-800 text-cyan-300 font-bold">
                 {itinerary.travelStyle || 'Adventure'}
@@ -371,19 +405,19 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
               Integrated Multi-Currency Equivalent:
             </span>
             <div className="flex flex-wrap items-center gap-2 text-xs font-mono font-bold">
-              <span className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-emerald-400">
+              <span className={`px-3 py-1.5 rounded-xl bg-slate-900/90 border text-emerald-400 ${getDisplayCurrency(itinerary) === 'INR' ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800'}`}>
                 INR ₹{(itinerary.total_budget_cap_inr || 25000).toLocaleString()}
               </span>
-              <span className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-cyan-300">
+              <span className={`px-3 py-1.5 rounded-xl bg-slate-900/90 border text-cyan-300 ${getDisplayCurrency(itinerary) === 'USD' ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800'}`}>
                 USD ${Math.round((itinerary.total_budget_cap_inr || 25000) / 83.75).toLocaleString()}
               </span>
-              <span className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-indigo-300">
+              <span className={`px-3 py-1.5 rounded-xl bg-slate-900/90 border text-indigo-300 ${getDisplayCurrency(itinerary) === 'EUR' ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800'}`}>
                 EUR €{Math.round(((itinerary.total_budget_cap_inr || 25000) / 83.75) * 0.92).toLocaleString()}
               </span>
-              <span className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-purple-300">
+              <span className={`px-3 py-1.5 rounded-xl bg-slate-900/90 border text-purple-300 ${getDisplayCurrency(itinerary) === 'GBP' ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800'}`}>
                 GBP £{Math.round(((itinerary.total_budget_cap_inr || 25000) / 83.75) * 0.78).toLocaleString()}
               </span>
-              <span className="px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800 text-amber-300">
+              <span className={`px-3 py-1.5 rounded-xl bg-slate-900/90 border text-amber-300 ${getDisplayCurrency(itinerary) === 'AED' ? 'border-cyan-400 ring-1 ring-cyan-400' : 'border-slate-800'}`}>
                 AED د.إ {Math.round(((itinerary.total_budget_cap_inr || 25000) / 83.75) * 3.67).toLocaleString()}
               </span>
             </div>
@@ -670,7 +704,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
                   <div className="text-right hidden sm:block">
                     <span className="text-[10px] font-mono uppercase text-slate-400 block">Est. Day Cost</span>
                     <span className="text-sm font-extrabold text-emerald-400">
-                      ₹{(dayData.estimated_day_cost_inr || 5200).toLocaleString()}
+                      {formatPrice(dayData.estimated_day_cost_inr || 5200, itinerary)}
                     </span>
                   </div>
 
@@ -680,108 +714,94 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
                 </div>
               </div>
 
-              {/* Change 2 — Connected Timeline Flow with Downwards Arrows (↓) */}
+              {/* Side-by-Side (Next-to-Next 3-Column Grid Layout) */}
               {!isCollapsed && (
-                <div className="p-6 sm:p-8 bg-slate-950/70 space-y-6">
-                  <div className="flex flex-col items-center max-w-2xl mx-auto space-y-4">
+                <div className="p-6 sm:p-8 bg-slate-950/70">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-5 items-stretch">
                     {/* Morning Activity Slot */}
                     {dayData.morning && (
-                      <div className="w-full glass-card p-5 rounded-2xl border border-slate-800 hover:border-amber-500/30 transition-all space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                          <div className="flex items-center gap-2">
+                      <div className="glass-card p-5 rounded-2xl border border-slate-800 hover:border-amber-500/40 transition-all space-y-3 flex flex-col justify-between shadow-lg">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                             <span className="px-2.5 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-xs font-bold font-mono flex items-center gap-1">
                               ☀ {dayData.morning.time || '09:00 AM'}
                             </span>
+                            <span className="text-xs font-mono font-extrabold text-emerald-400">
+                              {formatPrice(dayData.morning.estimated_cost_inr || 150, itinerary)}
+                            </span>
                           </div>
-                          <span className="text-xs font-mono font-extrabold text-emerald-400">
-                            ₹{dayData.morning.estimated_cost_inr || 150}
-                          </span>
+
+                          <h4 className="text-base font-extrabold text-white leading-snug">
+                            {dayData.morning.activity}
+                          </h4>
+
+                          <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {dayData.morning.location}
+                          </p>
                         </div>
 
-                        <h4 className="text-base font-extrabold text-white">
-                          {dayData.morning.activity}
-                        </h4>
-
-                        <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" /> {dayData.morning.location}
-                        </p>
-
                         {dayData.morning.tips && (
-                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 mt-1">
+                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 mt-2 font-mono">
                             💡 {dayData.morning.tips}
                           </p>
                         )}
                       </div>
                     )}
 
-                    {/* Change 2 — Downward Arrow Connector (↓) */}
-                    {dayData.morning && dayData.afternoon && (
-                      <div className="flex items-center justify-center my-1 text-cyan-400/80 font-black text-xl animate-bounce">
-                        ↓
-                      </div>
-                    )}
-
                     {/* Afternoon Activity Slot */}
                     {dayData.afternoon && (
-                      <div className="w-full glass-card p-5 rounded-2xl border border-slate-800 hover:border-cyan-500/30 transition-all space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                          <div className="flex items-center gap-2">
+                      <div className="glass-card p-5 rounded-2xl border border-slate-800 hover:border-cyan-500/40 transition-all space-y-3 flex flex-col justify-between shadow-lg">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                             <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20 text-xs font-bold font-mono flex items-center gap-1">
                               🍴 {dayData.afternoon.time || '01:00 PM'}
                             </span>
+                            <span className="text-xs font-mono font-extrabold text-emerald-400">
+                              {formatPrice(dayData.afternoon.estimated_cost_inr || 450, itinerary)}
+                            </span>
                           </div>
-                          <span className="text-xs font-mono font-extrabold text-emerald-400">
-                            ₹{dayData.afternoon.estimated_cost_inr || 450}
-                          </span>
+
+                          <h4 className="text-base font-extrabold text-white leading-snug">
+                            {dayData.afternoon.activity}
+                          </h4>
+
+                          <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {dayData.afternoon.location}
+                          </p>
                         </div>
 
-                        <h4 className="text-base font-extrabold text-white">
-                          {dayData.afternoon.activity}
-                        </h4>
-
-                        <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" /> {dayData.afternoon.location}
-                        </p>
-
                         {dayData.afternoon.tips && (
-                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 mt-1">
+                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 mt-2 font-mono">
                             💡 {dayData.afternoon.tips}
                           </p>
                         )}
                       </div>
                     )}
 
-                    {/* Change 2 — Downward Arrow Connector (↓) */}
-                    {dayData.afternoon && dayData.evening && (
-                      <div className="flex items-center justify-center my-1 text-cyan-400/80 font-black text-xl animate-bounce">
-                        ↓
-                      </div>
-                    )}
-
                     {/* Evening Activity Slot */}
                     {dayData.evening && (
-                      <div className="w-full glass-card p-5 rounded-2xl border border-slate-800 hover:border-indigo-500/30 transition-all space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
-                          <div className="flex items-center gap-2">
+                      <div className="glass-card p-5 rounded-2xl border border-slate-800 hover:border-indigo-500/40 transition-all space-y-3 flex flex-col justify-between shadow-lg">
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between border-b border-slate-800/80 pb-2">
                             <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 text-xs font-bold font-mono flex items-center gap-1">
                               🌅 {dayData.evening.time || '05:30 PM'}
                             </span>
+                            <span className="text-xs font-mono font-extrabold text-emerald-400">
+                              {formatPrice(dayData.evening.estimated_cost_inr || 200, itinerary)}
+                            </span>
                           </div>
-                          <span className="text-xs font-mono font-extrabold text-emerald-400">
-                            ₹{dayData.evening.estimated_cost_inr || 200}
-                          </span>
+
+                          <h4 className="text-base font-extrabold text-white leading-snug">
+                            {dayData.evening.activity}
+                          </h4>
+
+                          <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
+                            <MapPin className="w-3.5 h-3.5 flex-shrink-0" /> {dayData.evening.location}
+                          </p>
                         </div>
 
-                        <h4 className="text-base font-extrabold text-white">
-                          {dayData.evening.activity}
-                        </h4>
-
-                        <p className="text-xs text-cyan-400 font-semibold flex items-center gap-1">
-                          <MapPin className="w-3.5 h-3.5" /> {dayData.evening.location}
-                        </p>
-
                         {dayData.evening.tips && (
-                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800 mt-1">
+                          <p className="text-xs text-cyan-200/90 bg-slate-900/90 p-2.5 rounded-xl border border-slate-800/90 mt-2 font-mono">
                             💡 {dayData.evening.tips}
                           </p>
                         )}

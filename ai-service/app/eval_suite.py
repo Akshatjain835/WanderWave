@@ -116,6 +116,24 @@ async def run_evaluation_suite():
     print(f"Average End-to-End Latency      : {avg_latency} seconds")
     print("=" * 80)
 
+    # Save evaluation benchmark report markdown file
+    eval_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "evaluation")
+    os.makedirs(eval_dir, exist_ok=True)
+    report_file = os.path.join(eval_dir, "benchmark_report.md")
+
+    with open(report_file, "w", encoding="utf-8") as f:
+        f.write("# WanderWave Automated Agent Evaluation Benchmark Report\n\n")
+        f.write(f"**Generated:** {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}  \n")
+        f.write(f"**Total Scenarios Evaluated:** {total_runs}  \n\n")
+        f.write("## 📊 Summary Benchmark Metrics\n\n")
+        f.write(f"- **Requirement Extraction Accuracy:** {dest_accuracy_count}/{total_runs} ({dest_accuracy_count/total_runs*100:.1f}%)\n")
+        f.write(f"- **Budget Cap Compliance Rate:** {budget_compliant_count}/{total_runs} ({budget_compliant_count/total_runs*100:.1f}%)\n")
+        f.write(f"- **Deterministic Validation Pass Rate:** {successful_runs}/{total_runs} ({successful_runs/total_runs*100:.1f}%)\n")
+        f.write(f"- **Average Re-plan Retries:** {avg_retries} iterations\n")
+        f.write(f"- **Average End-to-End Latency:** {avg_latency} seconds\n\n")
+
+    print(f"[REPORT] Benchmark report written to: {report_file}")
+
     return {
         "total_scenarios": total_runs,
         "success_rate": round(successful_runs / max(1, total_runs), 2),
@@ -126,4 +144,5 @@ async def run_evaluation_suite():
     }
 
 if __name__ == "__main__":
+    import os
     asyncio.run(run_evaluation_suite())

@@ -48,12 +48,13 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
         checks_summary["budget_check"]["details"] = f"Exceeds budget cap by ₹{total_est_cost - budget:,.0f}"
 
     # CHECK 2: Category Allocation Validation (Activities & Sightseeing Cap)
+    travelers = max(1, int(state.get("travelers", 2)))
     activity_cap = float(budget_breakdown.get("activities_and_sightseeing", budget * 0.20))
     calculated_activity_cost = 0.0
     for d in days:
         for s in ["morning", "afternoon", "evening"]:
             slot = d.get(s, {})
-            calculated_activity_cost += float(slot.get("estimated_cost_inr", 0.0))
+            calculated_activity_cost += float(slot.get("estimated_cost_inr", 0.0)) * travelers
     
     if activity_cap > 0 and calculated_activity_cost > activity_cap * 1.20:
         issues.append(f"Category Budget Violation: Total activity cost (₹{calculated_activity_cost:,.0f}) exceeds allocated activity cap (₹{activity_cap:,.0f}).")
@@ -108,13 +109,23 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     if days:
         day1 = days[0]
         day1_m = day1.get("morning", {}).get("activity", "").lower()
-        if "arrival" not in day1_m and "check-in" not in day1_m and "reach" not in day1_m and "start" not in day1_m:
-            checks_summary["transit_feasibility_check"]["details"] = "Day 1 morning start verified without arrival conflict."
+        valid_arrival_terms = ["arrival", "check-in", "reach", "start", "welcome", "explore", "tour", "visit"]
+        if not any(term in day1_m for term in valid_arrival_terms):
+            issues.append("Transit Feasibility Conflict: Day 1 morning slot is missing arrival or initial check-in activity.")
+            checks_summary["transit_feasibility_check"]["passed"] = False
+            checks_summary["transit_feasibility_check"]["details"] = "Day 1 morning missing arrival or start activity"
+        else:
+            checks_summary["transit_feasibility_check"]["details"] = "Day 1 arrival and start activity verified."
 
         last_day = days[-1]
         last_e = last_day.get("evening", {}).get("activity", "").lower()
-        if "departure" not in last_e and "depart" not in last_e and "return" not in last_e and "farewell" not in last_e:
-            checks_summary["transit_feasibility_check"]["details"] = "Final day departure verified."
+        valid_departure_terms = ["departure", "depart", "return", "farewell", "flight", "train", "bus", "checkout", "end"]
+        if not any(term in last_e for term in valid_departure_terms):
+            issues.append(f"Transit Feasibility Conflict: Final Day (Day {len(days)}) evening slot is missing departure or return activity.")
+            checks_summary["transit_feasibility_check"]["passed"] = False
+            checks_summary["transit_feasibility_check"]["details"] = f"Final day evening missing departure or return activity"
+        else:
+            checks_summary["transit_feasibility_check"]["details"] = "Final day departure activity verified."
 
     validation_passed = (len(issues) == 0)
     passed_count = sum(1 for c in checks_summary.values() if c["passed"])

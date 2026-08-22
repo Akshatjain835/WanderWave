@@ -104,10 +104,17 @@ export const PlanTrip = () => {
         travelers: Number(customData.travelers || travelers),
         interests: customData.interests || ['Sightseeing', 'Cafes', 'Local Culture'],
         travelStyle: customData.travelStyle || travelStyle,
+        inputCurrency: customData.inputCurrency || 'USD',
+        displayCurrency: customData.displayCurrency || customData.inputCurrency || 'USD',
       });
 
       if (response.data.success) {
-        setAnalysisResult(response.data.data);
+        const resData = response.data.data;
+        if (resData && resData.itinerary) {
+          resData.itinerary.inputCurrency = customData.inputCurrency || 'USD';
+          resData.itinerary.displayCurrency = customData.displayCurrency || customData.inputCurrency || 'USD';
+        }
+        setAnalysisResult(resData);
         if (response.data.data?.requiresHumanInput) {
           setIsHITLModalOpen(true);
         }
