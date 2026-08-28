@@ -17,11 +17,24 @@ app = FastAPI(
     version="1.0.0"
 )
 
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "").split(",")
+allowed_origins = [
+    "http://localhost:5173",
+    "http://localhost:3000",
+    "http://localhost:5000",
+    "https://wanderwave.vercel.app",
+    "https://wanderwave-phi.vercel.app",
+] + [o.strip() for o in allowed_origins_env if o.strip()]
+
+client_url = os.getenv("CLIENT_URL")
+if client_url and client_url not in allowed_origins:
+    allowed_origins.append(client_url)
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=allowed_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["*"],
 )
 

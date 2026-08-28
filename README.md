@@ -55,9 +55,9 @@ WanderWave uses a 3-tier microservice architecture to decouple user state manage
 Built on **LangGraph TripState** with durable thread checkpointing (`SqliteSaver` / `MemorySaver`):
 - **Requirement Agent**: Parses raw user requests into type-safe Pydantic parameters using Gemini.
 - **Human-in-the-Loop (HITL)**: Pauses graph execution and requests user decision if destination or budget details are missing.
-- **Tool-First Research Agent**: Executes `weather_tool`, `transport_tool`, `places_tool`, and **Qdrant Cloud Vector DB RAG** *first* to gather empirical facts before LLM synthesis.
+- **Tool-First Research Agent**: Executes `weather_tool` (live Open-Meteo weather feed with destination climate fallback reserve), `transport_tool`, `places_tool`, and **Qdrant Cloud Vector DB RAG** *first* to gather empirical facts before LLM synthesis.
 - **Travel Intelligence Agent**: Computes numerical destination scores (Weather, Budget, Activity, Transport, Crowd comfort) and seasonal travel windows.
-- **Budget Allocation Agent**: Dynamically partitions budget into category caps (Stay ~35%, Transit ~25%, Meals ~20%, Activities ~15%, Cushion ~5%).
+- **Budget Allocation Agent**: Dynamically partitions budget into category caps (Stay ~32-45%, Transit ~20-25%, Meals ~15-25%, Activities ~10-18%, Cushion ~5%) tailored to destination cost tiers (e.g. Dubai/High-Cost vs Manali/Budget) and flags budget constraint warnings when allocations are tight.
 - **Planner Agent**: Generates structured day-by-day morning, afternoon, and evening timelines.
 - **Validator Agent**: Decoupled problem detection node enforcing 6 strict deterministic validation rules (Budget overrun, category allocation caps, rain outdoor safety, geographic redundancy, activity density/time sequence, arrival/departure timing).
 
@@ -86,9 +86,10 @@ Planner Agent (Re-plans with Feedback)
 - **Data Lineage Transparency**: Queries Qdrant Cloud Vector Database for hyper-local guidebooks and hidden spots. True vector matches carry `is_fallback: False` and `source: "Qdrant_Vector_DB"`, while unindexed queries explicitly carry `is_fallback: True` and `source: "RAG_UNAVAILABLE"`.
 
 ### 5. 🛠️ Fact-Grounded Tool Infrastructure & Worldwide Coverage
+- **Live Weather Integration**: Connects to Open-Meteo live API when available, paired with destination-aware climate fallbacks if offline.
 - **Transportation Estimation Tool**: Provides structured route fare estimates across flight, train, bus, and taxi options.
-- **Places Data Tool**: Queries curated destination spots, complemented by Gemini LLM worldwide destination knowledge for international trips anywhere globally (e.g. Tokyo, Paris, London).
-- **Live Market API Integration**: Connects to live exchange rate feeds with an in-memory **1-Hour Cache TTL** and base INR budget normalization.
+- **Places Data Tool**: Queries curated destination spots, complemented by Gemini LLM worldwide destination knowledge for international trips anywhere globally (e.g. Tokyo, Paris, London, Dubai).
+- **Strict Security & CORS Whitelisting**: Enforces strict origin domain whitelisting (local & Vercel production frontend) and mandatory `JWT_SECRET` environment validation on startup.
 
 ---
 

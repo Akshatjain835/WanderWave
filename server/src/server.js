@@ -12,25 +12,29 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
-// 1. Production CORS Middleware (Dynamically reflects request origin for Vercel & localhost)
+// 1. Strict CORS Middleware (Whitelists local & production origins, rejects untrusted origins)
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:3000',
   'https://wanderwave.vercel.app',
   'https://wanderwave-phi.vercel.app',
-  'https://wanderwave-pb5c4r99j-akshats-projects-19b508c8.vercel.app',
   process.env.CLIENT_URL,
 ].filter(Boolean);
 
 const corsOptions = {
   origin: (origin, callback) => {
-    if (!origin) {
-      return callback(null, true);
+    // Allow server-to-server or tools without origin header (e.g. Postman/curl)
+    if (!origin) return callback(null, true);
+
+    const isAllowed = allowedOrigins.includes(origin) ||
+      (origin.endsWith('.vercel.app') && origin.includes('wanderwave'));
+
+    if (isAllowed) {
+      callback(null, origin);
+    } else {
+      console.warn(`[CORS Blocked] Origin forbidden: ${origin}`);
+      callback(new Error(`CORS Error: Origin ${origin} is not allowed by WanderWave security policy.`));
     }
-    if (allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
-      return callback(null, origin);
-    }
-    return callback(null, origin);
   },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],

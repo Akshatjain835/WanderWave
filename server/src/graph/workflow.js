@@ -130,24 +130,43 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     { mode: `Private Cab / SUV Rental in ${destination}`, roundtrip_cost_per_person: Math.round(budget * 0.20), travel_time_hours: 5 },
   ];
 
-  // Budget Breakdown
-  const stayCap = Math.round(budget * 0.35);
-  const transportCap = Math.round(budget * 0.25);
-  const mealsCap = Math.round(budget * 0.20);
-  const activitiesCap = Math.round(budget * 0.15);
-  const emergencyCap = Math.round(budget * 0.05);
+  // Destination Cost Structure Matrix
+  const destLower = (destination || '').toLowerCase();
+  const isHighCost = ['dubai', 'paris', 'london', 'new york', 'tokyo', 'singapore', 'zurich', 'maldives', 'switzerland', 'amsterdam', 'iceland', 'rome'].some(h => destLower.includes(h));
+  const isMidCost = ['goa', 'kerala', 'mumbai', 'delhi', 'bengaluru', 'bali', 'bangkok', 'phuket', 'sri lanka', 'vietnam'].some(m => destLower.includes(m));
+
+  const costTier = isHighCost ? 'High / Premium' : isMidCost ? 'Mid-range' : 'Budget-friendly';
+  const alloc = isHighCost 
+    ? { stay: 0.45, transport: 0.25, food: 0.15, activities: 0.10, emergency: 0.05 }
+    : isMidCost
+    ? { stay: 0.38, transport: 0.22, food: 0.22, activities: 0.13, emergency: 0.05 }
+    : { stay: 0.32, transport: 0.20, food: 0.25, activities: 0.18, emergency: 0.05 };
+
+  const stayCap = Math.round(budget * alloc.stay);
+  const transportCap = Math.round(budget * alloc.transport);
+  const mealsCap = Math.round(budget * alloc.food);
+  const activitiesCap = Math.round(budget * alloc.activities);
+  const emergencyCap = Math.round(budget * alloc.emergency);
+
+  const dailyPerPerson = Math.round(budget / Math.max(1, duration * travelers));
+  const minDaily = isHighCost ? 6000 : isMidCost ? 2500 : 1500;
+  const isTight = dailyPerPerson < minDaily;
+
+  const budgetAdvice = isTight
+    ? `Notice: ₹${budget.toLocaleString()} for ${duration} days in ${destination} (~₹${dailyPerPerson.toLocaleString()}/day/person) is tight for a ${costTier} destination. High accommodation and transit costs require budget options or hostel stays.`
+    : `Destination-tailored allocation for ${destination} (${costTier} cost tier) covering stay, local transit, dining, and curated experiences.`;
 
   const budgetBreakdown = {
-    destination_cost_tier: 'Mid-range',
+    destination_cost_tier: costTier,
     accommodation_stay: stayCap,
     transportation: transportCap,
     food_and_meals: mealsCap,
     activities_and_sightseeing: activitiesCap,
     emergency_cushion: emergencyCap,
-    per_day_limit: Math.round(budget / duration),
-    per_person_limit: Math.round(budget / travelers),
+    per_day_limit: Math.round(budget / Math.max(1, duration)),
+    per_person_limit: Math.round(budget / Math.max(1, travelers)),
     total_budget: budget,
-    budget_advice: `Balanced budget allocation for ${destination} over ${duration} days.`,
+    budget_advice: budgetAdvice,
   };
 
   const DESTINATION_ATTRACTIONS = {

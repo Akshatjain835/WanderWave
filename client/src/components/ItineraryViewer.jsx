@@ -186,8 +186,8 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
               {[
                 { title: 'Requirement Analysis', desc: `Parsed duration (${itinerary.duration_days || 4} days), budget (₹${(itinerary.total_budget_cap_inr || 25000).toLocaleString()}), style (${itinerary.travelStyle || 'Adventure'})`, icon: '✓', status: 'pass' },
                 { title: 'Destination Research', desc: `Queried Qdrant Vector DB for local secrets in ${itinerary.destination || 'Goa'}`, icon: '✓', status: 'pass' },
-                { title: 'Weather Analysis', desc: `Retrieved Open-Meteo live forecasts (Rain probability checked)`, icon: '✓', status: 'pass' },
-                { title: 'Budget Optimization', desc: `Allocated categories (Stay, Transit, Meals, Activities, Cushion)`, icon: '✓', status: 'pass' },
+                { title: 'Weather Analysis', desc: `Live Open-Meteo API forecast (with dynamic climate fallback reserve)`, icon: '✓', status: 'pass' },
+                { title: 'Budget Optimization', desc: `Allocated categories based on destination cost tier & budget limits`, icon: '✓', status: 'pass' },
                 { title: 'Itinerary Planning', desc: `Synthesized day-by-day morning, afternoon, and evening timelines`, icon: '✓', status: 'pass' },
               ].map((step, idx) => (
                 <React.Fragment key={step.title}>
@@ -684,7 +684,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
                       </span>
                     </div>
                     <p className="text-xs text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono">
-                      <CloudSun className="w-3.5 h-3.5 text-cyan-400" /> {dayData.weather_snippet || 'Sunny & Clear | 26°C'}
+                      <CloudSun className="w-3.5 h-3.5 text-cyan-400" /> {dayData.weather_snippet || 'Pleasant Climate'}
                     </p>
                   </div>
                 </div>

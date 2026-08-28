@@ -68,6 +68,8 @@ def get_weather_forecast(destination: str, duration: int) -> Dict[str, Any]:
                 return {
                     "destination": dest_name,
                     "climate_type": climate_type,
+                    "source": "live_open_meteo",
+                    "is_fallback": False,
                     "forecast_days": daily_forecasts,
                     "has_heavy_rain_warning": has_heavy_rain,
                     "summary": f"Live Weather API ({dest_name}): Avg high {daily_forecasts[0]['temp_max_c']}°C, {daily_forecasts[0]['condition']}."
@@ -110,7 +112,9 @@ def get_weather_forecast(destination: str, duration: int) -> Dict[str, Any]:
     return {
         "destination": dest_name,
         "climate_type": climate_type,
+        "source": "graceful_fallback",
+        "is_fallback": True,
         "forecast_days": daily_forecasts,
         "has_heavy_rain_warning": has_heavy_rain,
-        "summary": f"Weather forecast for {dest_name}: {climate_type} conditions around {base_temp + 2}°C."
+        "summary": f"Climate profile forecast for {dest_name}: {climate_type} conditions around {base_temp + 2}°C."
     }
