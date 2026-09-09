@@ -11,6 +11,9 @@ class TripState(TypedDict, total=False):
     travelers: int
     interests: List[str]
     travel_style: str
+    must_visit_places: List[str]
+    must_visit_places_status: List[Dict[str, Any]]
+    location_feasibility: Dict[str, Any]
     missing_fields: List[str]
     input_currency: str
     display_currency: str

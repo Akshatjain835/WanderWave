@@ -40,6 +40,7 @@ async def planner_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
     travel_style = state.get("travel_style", "Adventure")
     interests = state.get("interests", ["Sightseeing", "Cafes"])
 
+    must_visit_places = state.get("must_visit_places", [])
     places = state.get("places_found", [])
     weather = state.get("weather_forecast", {})
     budget_breakdown = state.get("budget_breakdown", {})
@@ -58,6 +59,7 @@ async def planner_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
             place_names = [p.get('name') for p in places if p.get('name')]
             place_context_str = ", ".join(place_names) if place_names else f"top attractions in {destination}"
+            must_visit_str = ", ".join(must_visit_places) if must_visit_places else "None specified"
 
             feedback_instruction = ""
             if validation_issues:
@@ -81,15 +83,17 @@ State Context:
 - Budget Cap: INR {budget:,.0f}
 - Travel Style: {travel_style}
 - User Interests: {', '.join(interests)}
+- MUST-VISIT SPOTS REQUESTED BY USER: {must_visit_str}
 - Specific Researched Attractions: {place_context_str}
 - Budget Category Caps: Stay: ₹{budget_breakdown.get('accommodation_stay', 0)}, Transit: ₹{budget_breakdown.get('transportation', 0)}, Meals: ₹{budget_breakdown.get('food_and_meals', 0)}, Activities: ₹{budget_breakdown.get('activities_and_sightseeing', 0)}
 {feedback_instruction}
 
 CRITICAL INSTRUCTIONS:
-1. Every single day (Day 1 to Day {duration}) MUST have distinct, non-repeating attractions and activities specific to {destination}.
-2. Use real-world places from {destination} (e.g. for Mysore use Mysore Palace, Chamundi Hill, Brindavan Gardens, Devaraja Market, St. Philomena's, etc.).
-3. Provide morning, afternoon, and evening slots for ALL {duration} days with precise locations, realistic costs in INR, and insider tips.
-4. Ensure Day 1 starts with arrival/check-in in {destination} and Day {duration} ends with departure from {destination}.
+1. MANDATORY USER SPOTS: Every single place listed in MUST-VISIT SPOTS ({must_visit_str}) MUST be explicitly scheduled into a specific day and time slot in the itinerary!
+2. Every single day (Day 1 to Day {duration}) MUST have distinct, non-repeating attractions and activities specific to {destination}.
+3. Use real-world places from {destination} (e.g. for Mysore use Mysore Palace, Chamundi Hill, Brindavan Gardens, Devaraja Market, St. Philomena's, etc.).
+4. Provide morning, afternoon, and evening slots for ALL {duration} days with precise locations, realistic costs in INR, and insider tips.
+5. Ensure Day 1 starts with arrival/check-in in {destination} and Day {duration} ends with departure from {destination}.
             """
             itinerary_output = await structured_llm.ainvoke(prompt)
         except Exception as e:
@@ -103,7 +107,15 @@ CRITICAL INSTRUCTIONS:
             from app.graph.tools.places_tool import get_places_and_attractions
             places = get_places_and_attractions(destination, interests, travel_style)
 
-        num_places = len(places)
+        # Inject must-visit places into places list if not present
+        all_spots = []
+        for mv in must_visit_places:
+            all_spots.append({"name": mv, "category": "Must Visit Landmark", "description": f"User-requested landmark: {mv}"})
+        for p in places:
+            if not any(s["name"].lower() == p.get("name", "").lower() for s in all_spots):
+                all_spots.append(p)
+
+        num_places = len(all_spots)
         outdoor_keywords = ["trek", "waterfall", "beach", "safari", "viewpoint", "outdoor", "boating", "hill", "garden", "park", "sports"]
         rain_keywords = ["rain", "storm", "shower", "thunderstorm", "downpour"]
 
@@ -117,9 +129,9 @@ CRITICAL INSTRUCTIONS:
             idx_a = (day * 3 - 2) % num_places
             idx_e = (day * 3 - 1) % num_places
 
-            spot_m = places[idx_m]
-            spot_a = places[idx_a]
-            spot_e = places[idx_e]
+            spot_m = all_spots[idx_m]
+            spot_a = all_spots[idx_a]
+            spot_e = all_spots[idx_e]
 
             is_first = (day == 1)
             is_last = (day == duration)
@@ -197,16 +209,54 @@ CRITICAL INSTRUCTIONS:
     else:
         final_itinerary = itinerary_output.model_dump()
 
+    # Track must-visit places allocation status across itinerary days
+    must_visit_status = []
+    days_data = final_itinerary.get("days", [])
+    for place_name in must_visit_places:
+        found_day = None
+        found_slot = None
+        p_name_lower = place_name.lower().strip()
+        
+        for day_obj in days_data:
+            day_num = day_obj.get("day_number", 1)
+            for slot_key in ["morning", "afternoon", "evening"]:
+                slot_data = day_obj.get(slot_key, {})
+                act_str = (slot_data.get("activity", "") + " " + slot_data.get("location", "")).lower()
+                if p_name_lower in act_str:
+                    found_day = day_num
+                    found_slot = slot_key.capitalize()
+                    break
+            if found_day:
+                break
+                
+        if found_day:
+            must_visit_status.append({
+                "place_name": place_name,
+                "scheduled": True,
+                "day_allocated": found_day,
+                "slot_allocated": found_slot,
+                "status_note": f"Scheduled on Day {found_day} ({found_slot})"
+            })
+        else:
+            must_visit_status.append({
+                "place_name": place_name,
+                "scheduled": False,
+                "day_allocated": None,
+                "slot_allocated": None,
+                "status_note": "Not scheduled in draft itinerary"
+            })
+
     log_entry = {
         "agent": "Itinerary Planner Agent (LLM Dynamic Planner)" if not retry_count else f"Itinerary Planner Agent (Re-Planner Iteration #{retry_count})",
         "status": "SUCCESS",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Generated Day-by-Day itinerary ({duration} Days for {destination}, total cost estimate INR {final_itinerary.get('estimated_total_cost_inr', budget):,.0f})." if not retry_count else f"Re-planned itinerary to resolve validator issues: {', '.join(validation_issues[:2])}"
+        "details": f"Generated Day-by-Day itinerary ({duration} Days for {destination}, total cost estimate INR {final_itinerary.get('estimated_total_cost_inr', budget):,.0f}). Must visit spots allocated: {len([s for s in must_visit_status if s['scheduled']])}/{len(must_visit_places)}." if not retry_count else f"Re-planned itinerary to resolve validator issues: {', '.join(validation_issues[:2])}"
     }
 
     existing_logs = state.get("agent_logs", [])
     return {
         "itinerary": final_itinerary,
+        "must_visit_places_status": must_visit_status,
         "agent_logs": existing_logs + [log_entry]
     }
 

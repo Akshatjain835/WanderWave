@@ -1,5 +1,10 @@
 import os
+import sys
 import datetime
+
+# Ensure project root is in sys.path when running python app/main.py directly
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -40,23 +45,25 @@ app.add_middleware(
 
 class AnalyzeRequest(BaseModel):
     prompt: Optional[str] = None
-    destination: Optional[str] = "Manali"
-    startingCity: Optional[str] = "Delhi"
-    duration: Optional[int] = 5
-    budget: Optional[float] = 30000.0
-    travelers: Optional[int] = 2
-    interests: Optional[List[str]] = ["Trekking", "Cafes"]
-    travelStyle: Optional[str] = "Adventure"
+    destination: Optional[str] = None
+    startingCity: Optional[str] = None
+    duration: Optional[int] = None
+    budget: Optional[float] = None
+    travelers: Optional[int] = None
+    interests: Optional[List[str]] = None
+    travelStyle: Optional[str] = None
+    mustVisitPlaces: Optional[List[str]] = None
     userLongTermPreferences: Optional[Dict[str, Any]] = None
 
 class ResumeRequest(BaseModel):
     user_decision: str
     destination: Optional[str] = None
     budget: Optional[float] = None
-    duration: Optional[int] = 5
-    travelers: Optional[int] = 2
+    duration: Optional[int] = None
+    travelers: Optional[int] = None
     startingCity: Optional[str] = "Delhi"
     travelStyle: Optional[str] = "Adventure"
+    mustVisitPlaces: Optional[List[str]] = None
 
 class RegenerateDayRequest(BaseModel):
     dayNumber: int
@@ -64,6 +71,13 @@ class RegenerateDayRequest(BaseModel):
     currentItinerary: Dict[str, Any]
     destination: Optional[str] = "Goa"
     budget: Optional[float] = 25000.0
+
+class ExploreLocationRequest(BaseModel):
+    destination: str
+    duration: Optional[int] = 5
+    month: Optional[str] = None
+    travelStyle: Optional[str] = "Adventure"
+    interests: Optional[List[str]] = None
 
 @app.get("/health")
 def health_check():
@@ -73,19 +87,84 @@ def health_check():
         "gemini_api_key_configured": bool(os.getenv("GEMINI_API_KEY"))
     }
 
+@app.post("/api/graph/explore-location")
+async def explore_location(request: ExploreLocationRequest):
+    """
+    Standalone Location Feasibility, Climate & Temperature Explorer Endpoint:
+    Provides fast, standalone destination lookup with real weather, temperatures, climate risk ratings, and suitability advice.
+    """
+    try:
+        dest = request.destination.strip()
+        dur = request.duration or 5
+        style = request.travelStyle or "Adventure"
+        user_interests = request.interests or ["Sightseeing", "Cafes", "Local Culture"]
+
+        from app.graph.tools.weather_tool import get_weather_forecast
+        from app.graph.tools.places_tool import get_places_and_attractions
+        from app.graph.nodes.travel_intelligence_agent import travel_intelligence_agent_node
+
+        weather = get_weather_forecast(dest, dur)
+        places = get_places_and_attractions(dest, user_interests, style)
+
+        intel_state = {
+            "destination": dest,
+            "duration": dur,
+            "budget": 30000.0,
+            "travel_style": style,
+            "interests": user_interests,
+            "places_found": places,
+            "weather_forecast": weather,
+            "agent_logs": []
+        }
+
+        intel_res = await travel_intelligence_agent_node(intel_state)
+        travel_intel = intel_res.get("travel_intelligence", {})
+        location_feasibility = intel_res.get("location_feasibility", {})
+
+        return {
+            "success": True,
+            "message": f"Retrieved instant location & climate feasibility analytics for '{dest}' 🌤️",
+            "data": {
+                "destination": dest,
+                "duration": dur,
+                "weatherForecast": weather,
+                "locationFeasibility": location_feasibility,
+                "travelIntelligence": travel_intel,
+                "placesFound": places,
+                "summary": f"{dest} is evaluated as '{location_feasibility.get('verdict')}' with a weather score of {travel_intel.get('weather_score', 8.5)}/10. Best window to visit: {location_feasibility.get('best_month_to_visit', 'October - March')}."
+            }
+        }
+    except Exception as e:
+        print("[Python AI-Service Explore Location Error]", e)
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.post("/api/graph/analyze")
 async def analyze_trip(request: AnalyzeRequest):
     try:
         user_prompt = request.prompt
         if not user_prompt:
-            user_prompt = f"Plan a {request.duration} day trip to {request.destination} from {request.startingCity} under {request.budget} for {request.travelers} people with interests in {', '.join(request.interests or [])}"
+            if request.destination:
+                user_prompt = f"Plan a {request.duration or 5} day trip to {request.destination} from {request.startingCity or 'Delhi'} under {request.budget or 30000} for {request.travelers or 2} people with interests in {', '.join(request.interests or [])}"
+            else:
+                user_prompt = "Plan a trip for me"
 
         prefs = request.userLongTermPreferences or {
             "travelStyle": request.travelStyle,
             "dietary": "Vegetarian"
         }
 
-        result_state = await run_requirement_analysis(user_prompt, prefs)
+        result_state = await run_requirement_analysis(
+            user_request=user_prompt,
+            user_long_term_preferences=prefs,
+            initial_destination=request.destination,
+            initial_budget=request.budget,
+            initial_duration=request.duration,
+            initial_travelers=request.travelers,
+            initial_starting_city=request.startingCity,
+            initial_travel_style=request.travelStyle,
+            must_visit_places=request.mustVisitPlaces
+        )
+
 
         return {
             "success": True,
@@ -98,6 +177,10 @@ async def analyze_trip(request: AnalyzeRequest):
                 "travelers": result_state.get("travelers"),
                 "interests": result_state.get("interests"),
                 "travelStyle": result_state.get("travel_style"),
+                "mustVisitPlaces": result_state.get("must_visit_places", []),
+                "mustVisitPlacesStatus": result_state.get("must_visit_places_status", []),
+                "travelIntelligence": result_state.get("travel_intelligence", {}),
+                "locationFeasibility": result_state.get("location_feasibility", {}),
                 "missingFields": result_state.get("missing_fields", []),
                 "requiresHumanInput": result_state.get("requires_human_input", False),
                 "humanPromptOptions": result_state.get("human_prompt_options", []),
@@ -122,8 +205,17 @@ async def analyze_trip(request: AnalyzeRequest):
 @app.post("/api/graph/resume")
 async def resume_trip(request: ResumeRequest):
     try:
-        dest = request.destination or request.user_decision or "Goa"
-        result_state = await resume_requirement_analysis(dest, thread_id="default_session")
+        resume_payload = {
+            "user_decision": request.user_decision,
+            "destination": request.destination or request.user_decision,
+            "budget": request.budget,
+            "duration": request.duration,
+            "travelers": request.travelers,
+            "starting_city": request.startingCity,
+            "travel_style": request.travelStyle,
+            "must_visit_places": request.mustVisitPlaces
+        }
+        result_state = await resume_requirement_analysis(resume_payload, thread_id="default_session")
 
         return {
             "success": True,
@@ -136,6 +228,10 @@ async def resume_trip(request: ResumeRequest):
                 "travelers": result_state.get("travelers"),
                 "interests": result_state.get("interests"),
                 "travelStyle": result_state.get("travel_style"),
+                "mustVisitPlaces": result_state.get("must_visit_places", []),
+                "mustVisitPlacesStatus": result_state.get("must_visit_places_status", []),
+                "travelIntelligence": result_state.get("travel_intelligence", {}),
+                "locationFeasibility": result_state.get("location_feasibility", {}),
                 "requiresHumanInput": False,
                 "validationPassed": result_state.get("validation_passed", True),
                 "validationIssues": result_state.get("validation_issues", []),
@@ -152,6 +248,7 @@ async def resume_trip(request: ResumeRequest):
     except Exception as e:
         print("[Python AI-Service Resume Error]", e)
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/api/graph/regenerate-day")
 async def regenerate_day(request: RegenerateDayRequest):

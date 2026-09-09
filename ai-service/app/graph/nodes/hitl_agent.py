@@ -1,9 +1,12 @@
+import datetime
 from typing import Dict, Any
 
 try:
     from langgraph.types import interrupt
+    from langgraph.errors import GraphInterrupt
 except ImportError:
     interrupt = None
+    GraphInterrupt = None
 
 async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
     """
@@ -23,7 +26,7 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
     options = []
     has_budget_overrun = any("Budget Violation" in issue for issue in validation_issues)
 
-    if not destination or destination.lower() in ["unknown", "visit", "trip", ""]:
+    if not destination or destination.lower() in ["unknown", "visit", "trip", "place", ""]:
         options = [
             {"id": "opt_goa", "label": "Goa Beach Getaway 🏖️", "destination": "Goa", "budget": 25000, "duration": 4},
             {"id": "opt_manali", "label": "Manali Alpine Trek 🏔️", "destination": "Manali", "budget": 30000, "duration": 5},
@@ -54,7 +57,7 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
         clarification_prompt = f"Clarification needed: Choose your preferred travel style for {destination}:"
 
     log_entry = {
-        "agent": "Human-in-the-Loop Clarification Node (Native LangGraph Interrupt)",
+        "agent": "Human-in-the-Loop Clarification Node",
         "status": "PAUSED_FOR_HUMAN_INPUT",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
         "details": f"Paused graph execution via native interrupt(). State checkpointed with {len(options)} human choice options."
@@ -62,6 +65,7 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     existing_logs = state.get("agent_logs", [])
     output_state = {
+        **state,
         "requires_human_input": True,
         "human_prompt_options": options,
         "clarification_prompt": clarification_prompt,
@@ -70,11 +74,36 @@ async def human_clarification_node(state: Dict[str, Any]) -> Dict[str, Any]:
 
     # Trigger native LangGraph interrupt if available
     if interrupt and callable(interrupt):
-        try:
-            resumed_val = interrupt(output_state)
-            if isinstance(resumed_val, dict):
-                return {**state, **resumed_val, "requires_human_input": False}
-        except Exception:
-            pass
+        resumed_val = interrupt(output_state)
+        # When graph resumes, interrupt() returns the value passed in Command(resume=...)
+        resumed_updates = {}
+        if isinstance(resumed_val, dict):
+            resumed_updates = resumed_val
+        elif isinstance(resumed_val, str) and resumed_val:
+            resumed_updates = {"destination": resumed_val}
+
+        res_dest = resumed_updates.get("destination") or state.get("destination") or "Goa"
+        res_budget = float(resumed_updates.get("budget") or state.get("budget") or 30000.0)
+
+        resume_log = {
+            "agent": "Human-in-the-Loop Node (Resumed)",
+            "status": "RESUMED",
+            "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
+            "details": f"Resumed graph execution with human decision: Destination={res_dest}, Budget=INR {res_budget:,.0f}."
+        }
+
+        return {
+            **state,
+            **resumed_updates,
+            "destination": res_dest,
+            "budget": res_budget,
+            "requires_human_input": False,
+            "missing_fields": [],
+            "agent_logs": state.get("agent_logs", []) + [resume_log]
+        }
 
     return output_state
+
+
+
+

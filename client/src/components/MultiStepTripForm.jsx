@@ -41,15 +41,16 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
   });
 
   const [formData, setFormData] = useState({
-    destination: 'Goa',
+    destination: '',
     startingCity: 'Delhi',
     duration: 4,
     startDate: new Date().toISOString().split('T')[0],
-    budget: 25000,
+    budget: '',
     travelers: 2,
     travelStyle: 'Relaxed',
     interests: ['Sightseeing', 'Cafes', 'Beaches'],
     dietary: 'No Preference',
+    mustVisitPlacesInput: '',
   });
 
   useEffect(() => {
@@ -78,10 +79,11 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
 
   // Normalize input budget to base INR for AI Budget Agent
   const calculateNormalizedINR = (amt, curr) => {
+    if (!amt || isNaN(Number(amt))) return 0;
     const rateINR = exchangeRates.INR || 83.75;
     const rateCurr = exchangeRates[curr] || 1.0;
-    if (curr === 'INR') return amt;
-    return Math.round((amt / rateCurr) * rateINR);
+    if (curr === 'INR') return Number(amt);
+    return Math.round((Number(amt) / rateCurr) * rateINR);
   };
 
   // Convert normalized INR to user's selected display currency
@@ -118,7 +120,12 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    const promptText = `Plan a ${formData.duration} day ${formData.travelStyle.toLowerCase()} trip to ${formData.destination} starting from ${formData.startingCity} for ${formData.travelers} people under ₹${normalizedINR.toLocaleString()} INR (${CURRENCY_SYMBOLS[currency]}${formData.budget.toLocaleString()} ${currency}). Interests: ${formData.interests.join(', ')}. Dietary: ${formData.dietary}.`;
+    const parsedMustVisits = (formData.mustVisitPlacesInput || '')
+      .split(',')
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    const promptText = `Plan a ${formData.duration} day ${formData.travelStyle.toLowerCase()} trip to ${formData.destination} starting from ${formData.startingCity} for ${formData.travelers} people under ₹${normalizedINR.toLocaleString()} INR (${CURRENCY_SYMBOLS[currency]}${formData.budget.toLocaleString()} ${currency}). Must visit: ${parsedMustVisits.join(', ') || 'None'}. Interests: ${formData.interests.join(', ')}. Dietary: ${formData.dietary}.`;
     
     // Pass normalized budget in INR + currency preferences to parent
     onSubmit(promptText, {
@@ -127,6 +134,7 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
       originalBudget: formData.budget,
       inputCurrency: currency,
       displayCurrency: displayCurrency,
+      mustVisitPlaces: parsedMustVisits,
     });
   };
 
@@ -176,7 +184,6 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                   onChange={(e) => setFormData({ ...formData, destination: e.target.value })}
                   placeholder="e.g. Goa, Manali, Jaipur, Dubai, Paris..."
                   className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
-                  required
                 />
               </div>
 
@@ -210,6 +217,22 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                   onChange={(e) => setFormData({ ...formData, startingCity: e.target.value })}
                   placeholder="e.g. Delhi, Mumbai, Bangalore..."
                   className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-cyan-500"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">
+                Must-Visit Places / Landmarks <span className="text-[10px] text-cyan-400 font-mono font-normal">(Optional, comma separated)</span>
+              </label>
+              <div className="relative">
+                <MapPin className="absolute left-3.5 top-3 w-4 h-4 text-emerald-400" />
+                <input
+                  type="text"
+                  value={formData.mustVisitPlacesInput}
+                  onChange={(e) => setFormData({ ...formData, mustVisitPlacesInput: e.target.value })}
+                  placeholder="e.g. Fort Aguada, Baga Beach, Eiffel Tower..."
+                  className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-10 pr-4 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
             </div>
@@ -272,9 +295,9 @@ export const MultiStepTripForm = ({ onSubmit, isLoading }) => {
                       type="number"
                       step="100"
                       value={formData.budget}
-                      onChange={(e) => setFormData({ ...formData, budget: parseInt(e.target.value) || 0 })}
+                      onChange={(e) => setFormData({ ...formData, budget: e.target.value === '' ? '' : (parseInt(e.target.value) || 0) })}
+                      placeholder="e.g. 25000 (leave blank to let AI suggest)"
                       className="w-full bg-slate-900/90 border border-slate-800 rounded-xl pl-10 pr-3 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
-                      required
                     />
                   </div>
 

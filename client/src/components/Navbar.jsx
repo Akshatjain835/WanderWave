@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Compass, Sparkles, MapPin, User, LogOut, ChevronDown } from 'lucide-react';
+import { Compass, Sparkles, MapPin, User, LogOut, ChevronDown, CloudSun } from 'lucide-react';
+import { LocationExplorerModal } from './LocationExplorerModal';
 
 export const Navbar = () => {
   const { user, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [explorerOpen, setExplorerOpen] = useState(false);
 
   const handleLogout = () => {
     logout();
@@ -18,6 +20,8 @@ export const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 glass-panel border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-md">
+      <LocationExplorerModal isOpen={explorerOpen} onClose={() => setExplorerOpen(false)} />
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
         {/* Brand Logo */}
         <Link to="/" className="flex items-center gap-3 group">
@@ -61,6 +65,13 @@ export const Navbar = () => {
               <Sparkles className="w-4 h-4 text-cyan-400" />
               Plan New Trip
             </Link>
+            <button
+              onClick={() => setExplorerOpen(true)}
+              className="px-3.5 py-1.5 rounded-lg text-sm font-medium text-cyan-300 hover:text-white hover:bg-cyan-500/20 border border-cyan-500/30 transition-all flex items-center gap-1.5 bg-cyan-950/40"
+            >
+              <CloudSun className="w-4 h-4 text-cyan-400" />
+              Weather & Location Explorer
+            </button>
             <Link
               to="/trips"
               className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${

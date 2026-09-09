@@ -74,7 +74,7 @@ export const Dashboard = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12">
-      {/* Change 1 — Premium Hero Banner */}
+      {/* Hero Banner */}
       <div className="relative rounded-3xl overflow-hidden glass-panel border border-slate-800 bg-slate-950 p-8 sm:p-12 min-h-[380px] flex flex-col justify-between shadow-2xl">
         {heroCoverImg && (
           <div
@@ -120,7 +120,7 @@ export const Dashboard = () => {
           </div>
         </div>
 
-        {/* Change 1 — AI Planning Capability Badges */}
+        {/* Capability Badges */}
         <div className="relative z-10 pt-8 border-t border-slate-800/80 mt-6">
           <span className="text-xs font-mono uppercase font-bold text-slate-400 tracking-wider block mb-3">
             AI Planning Capabilities:

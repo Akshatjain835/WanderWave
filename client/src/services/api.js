@@ -1,7 +1,9 @@
 import axios from 'axios';
 
 // Ensure baseURL always contains /api prefix regardless of environment variable trailing slashes
-const rawBaseURL = import.meta.env.VITE_API_URL || 'https://wanderwave-1-5xti.onrender.com/api';
+const isLocalhost = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const defaultURL = isLocalhost ? 'http://localhost:5000/api' : 'https://wanderwave-1-5xti.onrender.com/api';
+const rawBaseURL = import.meta.env.VITE_API_URL || defaultURL;
 const cleanURL = rawBaseURL.replace(/\/+$/, '');
 const baseURL = cleanURL.endsWith('/api') ? cleanURL : `${cleanURL}/api`;
 

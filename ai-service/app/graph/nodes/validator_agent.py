@@ -127,13 +127,33 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
         else:
             checks_summary["transit_feasibility_check"]["details"] = "Final day departure activity verified."
 
+    # CHECK 7: Must-Visit User Locations Check
+    must_visit_places = state.get("must_visit_places", [])
+    if must_visit_places:
+        for mv in must_visit_places:
+            mv_lower = mv.lower().strip()
+            found = False
+            for d in days:
+                for slot_name in ["morning", "afternoon", "evening"]:
+                    slot = d.get(slot_name, {})
+                    act_str = (slot.get("activity", "") + " " + slot.get("location", "")).lower()
+                    if mv_lower in act_str:
+                        found = True
+                        break
+                if found:
+                    break
+            if not found:
+                issues.append(f"Must-Visit Place Missing: '{mv}' was requested by user but is not scheduled in the itinerary.")
+                checks_summary["locations_check"]["passed"] = False
+                checks_summary["locations_check"]["details"] = f"Requested spot '{mv}' missing from schedule."
+
     validation_passed = (len(issues) == 0)
     passed_count = sum(1 for c in checks_summary.values() if c["passed"])
 
-    feedback = f"Itinerary passed all 6 strict validation checks 100%!" if validation_passed else f"Validation detected {len(issues)} issues on iteration {retry_count + 1}: {'; '.join(issues)}"
+    feedback = f"Itinerary passed strict validation checks 100%!" if validation_passed else f"Validation detected {len(issues)} issues on iteration {retry_count + 1}: {'; '.join(issues)}"
 
     log_entry = {
-        "agent": "ValidatorAgent Node (6 Strict Validation Checks)",
+        "agent": "ValidatorAgent Node (Validation Checks)",
         "status": "PASSED" if validation_passed else "RE-PLAN_REQUIRED",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
         "details": feedback
@@ -146,7 +166,7 @@ async def validator_agent_node(state: Dict[str, Any]) -> Dict[str, Any]:
         "validation_feedback": feedback,
         "validation_summary": {
             "passed_count": passed_count,
-            "total_checks": 6,
+            "total_checks": 7,
             "checks": checks_summary
         },
         "itinerary": itinerary,

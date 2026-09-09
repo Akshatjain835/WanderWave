@@ -8,6 +8,7 @@ import {
   getTripById,
   deleteTrip,
   updateTripStatus,
+  exploreLocation,
 } from '../controllers/tripController.js';
 import { protect } from '../middlewares/authMiddleware.js';
 
@@ -16,6 +17,7 @@ const router = express.Router();
 router.post('/analyze', protect, analyzeTripRequest);
 router.post('/resume', protect, resumeTripRequest);
 router.post('/regenerate-day', protect, regenerateDay);
+router.post('/explore-location', exploreLocation);
 
 router.route('/')
   .post(protect, saveTrip)

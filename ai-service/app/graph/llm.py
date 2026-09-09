@@ -11,7 +11,16 @@ def get_llm(temperature: float = 0.3, max_retries: int = 2, request_timeout: int
         return None
 
     # Supported active model identifiers in order of preference
-    candidate_models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro"]
+    candidate_models = [
+        "gemini-3.6-flash",
+        "gemini-2.5-flash",
+        "gemini-2.0-flash",
+        "gemini-1.5-flash",
+        "gemini-2.5-pro",
+        "gemini-1.5-pro"
+    ]
+
+
     
     for model_name in candidate_models:
         try:

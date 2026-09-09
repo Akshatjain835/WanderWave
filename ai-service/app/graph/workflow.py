@@ -47,10 +47,17 @@ memory_checkpointer = get_checkpointer()
 def route_after_requirement(state: TripState) -> str:
     """
     Conditional Router:
-    If destination is missing or requires_human_input flag is True, pause and route to Human-in-the-Loop clarification node.
+    If destination is missing/unknown, budget is missing/invalid (<=0), or requires_human_input flag is True,
+    pause and route to Human-in-the-Loop clarification node.
     """
     destination = state.get("destination", "")
-    if state.get("requires_human_input") or not destination or destination.lower() in ["unknown", "visit", "trip", ""]:
+    budget = float(state.get("budget", 0))
+    if (
+        state.get("requires_human_input")
+        or not destination
+        or destination.lower() in ["unknown", "visit", "trip", "place", ""]
+        or budget <= 0
+    ):
         return "human_clarification_node"
     return "research_agents"
 
@@ -96,7 +103,8 @@ def build_trip_graph():
         }
     )
 
-    workflow.add_edge("human_clarification_node", END)
+    # When human clarification resumes, it routes to research_agents to continue full graph execution
+    workflow.add_edge("human_clarification_node", "research_agents")
     workflow.add_edge("research_agents", "travel_intelligence_agent")
     workflow.add_edge("travel_intelligence_agent", "budget_agent")
     workflow.add_edge("budget_agent", "planner_agent")
@@ -118,26 +126,106 @@ def build_trip_graph():
 
 trip_graph_app = build_trip_graph()
 
-async def run_requirement_analysis(user_request: str, user_long_term_preferences: dict = None, requires_hitl: bool = False, thread_id: str = "default_session"):
+async def run_requirement_analysis(
+    user_request: str,
+    user_long_term_preferences: dict = None,
+    initial_destination: str = None,
+    initial_budget: float = None,
+    initial_duration: int = None,
+    initial_travelers: int = None,
+    initial_starting_city: str = None,
+    initial_travel_style: str = None,
+    must_visit_places: list = None,
+    requires_hitl: bool = False,
+    thread_id: str = "default_session"
+):
     initial_state = {
         "user_request": user_request,
         "user_long_term_preferences": user_long_term_preferences or {},
+        "destination": initial_destination,
+        "budget": initial_budget,
+        "duration": initial_duration,
+        "travelers": initial_travelers,
+        "starting_city": initial_starting_city,
+        "travel_style": initial_travel_style,
+        "must_visit_places": must_visit_places or [],
         "requires_human_input": requires_hitl,
         "retry_count": 0
     }
     config = {"configurable": {"thread_id": thread_id}}
-    final_state = await trip_graph_app.ainvoke(initial_state, config=config)
-    return final_state
+    try:
+        final_state = await trip_graph_app.ainvoke(initial_state, config=config)
 
-async def resume_requirement_analysis(user_decision: str, thread_id: str = "default_session"):
+        snapshot = trip_graph_app.get_state(config)
+        int_val = {}
+
+        if snapshot and hasattr(snapshot, "tasks") and snapshot.tasks:
+            for task in snapshot.tasks:
+                if hasattr(task, "interrupts") and task.interrupts:
+                    for intr in task.interrupts:
+                        val = getattr(intr, "value", None)
+                        if isinstance(val, dict):
+                            int_val.update(val)
+
+        if isinstance(final_state, dict) and "__interrupt__" in final_state and final_state["__interrupt__"]:
+            for intr_item in final_state["__interrupt__"]:
+                val = getattr(intr_item, "value", None)
+                if isinstance(val, dict):
+                    int_val.update(val)
+
+        is_paused = bool(int_val) or (snapshot and snapshot.next and "human_clarification_node" in snapshot.next)
+        if is_paused:
+            return {
+                **final_state,
+                **int_val,
+                "requires_human_input": True,
+                "itinerary": None
+            }
+
+        return final_state
+    except Exception as e:
+        if e.__class__.__name__ == "GraphInterrupt" or "GraphInterrupt" in str(type(e)):
+            try:
+                int_val = {}
+                snapshot = trip_graph_app.get_state(config)
+                values = dict(snapshot.values) if snapshot and snapshot.values else {}
+                if snapshot and hasattr(snapshot, "tasks") and snapshot.tasks:
+                    for task in snapshot.tasks:
+                        if hasattr(task, "interrupts") and task.interrupts:
+                            for intr in task.interrupts:
+                                val = getattr(intr, "value", None)
+                                if isinstance(val, dict):
+                                    int_val.update(val)
+                return {**values, **int_val, "requires_human_input": True, "itinerary": None}
+            except Exception as err:
+                print("[Workflow GraphInterrupt Handler Notice]", err)
+                pass
+        raise e
+
+
+async def resume_requirement_analysis(resume_data: dict, thread_id: str = "default_session"):
     """
     Resumes a paused thread checkpoint using native LangGraph Command(resume=...).
     """
     from langgraph.types import Command
     config = {"configurable": {"thread_id": thread_id}}
+    if isinstance(resume_data, str):
+        resume_payload = {"destination": resume_data}
+    else:
+        resume_payload = dict(resume_data or {})
+
+    dest = resume_payload.get("destination") or "Goa"
+    budget = float(resume_payload.get("budget") or 30000.0)
+
     try:
-        final_state = await trip_graph_app.ainvoke(Command(resume={"destination": user_decision}), config=config)
+        final_state = await trip_graph_app.ainvoke(Command(resume=resume_payload), config=config)
         return final_state
-    except Exception:
-        resumed_prompt = f"Plan a trip to {user_decision}"
+    except Exception as e:
+        if e.__class__.__name__ == "GraphInterrupt" or "GraphInterrupt" in str(type(e)):
+            snapshot = trip_graph_app.get_state(config)
+            values = dict(snapshot.values) if snapshot and snapshot.values else {}
+            return {**values, "requires_human_input": True, "itinerary": None}
+        resumed_prompt = f"Plan a trip to {dest} under {budget}"
         return await run_requirement_analysis(resumed_prompt, thread_id=thread_id)
+
+

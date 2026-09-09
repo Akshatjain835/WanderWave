@@ -1,11 +1,5 @@
 /**
- * ARCHITECTURAL NOTICE:
- * Python FastAPI microservice (ai-service/app/graph/workflow.py) is the sole primary
- * LangGraph Multi-Agent Orchestration Engine for WanderWave.
- * 
- * Express Backend (server/src) serves as the API Gateway, Authentication (JWT),
- * MongoDB Atlas persistence, and proxy to the Python FastAPI microservice.
- * This file acts as an offline secondary fallback solver.
+ * Requirement Analysis & Fallback Workflow Solver
  */
 export const runRequirementAnalysis = async (userRequest = '', userLongTermPreferences = {}, payloadObj = {}) => {
   const text = (userRequest || '').toLowerCase().trim();
@@ -22,7 +16,11 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     }
   }
 
-  if (!destination || destination.toLowerCase() === 'visit') {
+  let requiresHumanInput = false;
+  let humanPromptOptions = [];
+  let clarificationPrompt = '';
+
+  if (!destination || destination.toLowerCase() === 'visit' || destination.toLowerCase() === 'trip') {
     if (text.includes('hyderabad')) destination = 'Hyderabad';
     else if (text.includes('dubai')) destination = 'Dubai';
     else if (text.includes('goa')) destination = 'Goa';
@@ -31,11 +29,23 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     else if (text.includes('jaipur')) destination = 'Jaipur';
     else if (text.includes('mumbai')) destination = 'Mumbai';
     else if (text.includes('manali')) destination = 'Manali';
-    else destination = payloadObj.destination || 'Manali';
+    else destination = payloadObj.destination || '';
   }
 
-  destination = destination.replace(/^(visit|to|trip|go)\s+/i, '').trim();
-  destination = destination.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  if (!destination || destination.toLowerCase() === 'unknown' || destination.toLowerCase() === 'trip' || destination.toLowerCase() === 'place' || destination.toLowerCase() === 'vacation') {
+    destination = 'Unknown';
+    requiresHumanInput = true;
+    clarificationPrompt = "Your trip destination wasn't specified. Please select a popular destination below to proceed:";
+    humanPromptOptions = [
+      { id: 'opt_goa', label: 'Goa Beach Getaway 🏖️', destination: 'Goa', budget: 25000, duration: 4 },
+      { id: 'opt_manali', label: 'Manali Alpine Trek 🏔️', destination: 'Manali', budget: 30000, duration: 5 },
+      { id: 'opt_jaipur', label: 'Jaipur Royal Heritage 🏛️', destination: 'Jaipur', budget: 20000, duration: 3 },
+      { id: 'opt_dubai', label: 'Dubai Luxury & Desert Safari 🐪', destination: 'Dubai', budget: 80000, duration: 5 },
+    ];
+  } else {
+    destination = destination.replace(/^(visit|to|trip|go)\s+/i, '').trim();
+    destination = destination.split(' ').map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+  }
 
   // 2. Origin City Extraction
   let startingCity = payloadObj.startingCity || 'Delhi';
@@ -50,11 +60,22 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
   if (dayMatch) duration = parseInt(dayMatch[1], 10);
 
   // 4. Budget Extraction
-  let budget = payloadObj.budget || 30000;
+  let budget = payloadObj.budget !== undefined ? Number(payloadObj.budget) : 0;
   const kMatch = text.match(/(\d+)\s*k/i);
   const numMatch = text.match(/(\d{4,6})/);
   if (kMatch) budget = parseInt(kMatch[1], 10) * 1000;
   else if (numMatch) budget = parseInt(numMatch[1], 10);
+
+  if (!requiresHumanInput && (!budget || budget <= 0)) {
+    requiresHumanInput = true;
+    clarificationPrompt = `Please select your target budget tier for your trip to ${destination}:`;
+    humanPromptOptions = [
+      { id: 'opt_b1', label: 'Budget Friendly (₹15,000) 🎒', budget: 15000 },
+      { id: 'opt_b2', label: 'Balanced Standard (₹35,000) 🏨', budget: 35000 },
+      { id: 'opt_b3', label: 'Premium Comfort (₹75,000) 💎', budget: 75000 },
+    ];
+    budget = 30000;
+  }
 
   // 5. Travelers Extraction
   let travelers = payloadObj.travelers || 2;
@@ -244,7 +265,7 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     };
   });
 
-  const itinerary = {
+  const itinerary = requiresHumanInput ? null : {
     trip_title: `${duration}-Day ${travelStyle} Trip to ${destination} from ${startingCity}`,
     destination,
     starting_city: startingCity,
@@ -263,19 +284,28 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     travelers,
     interests,
     travelStyle,
-    missingFields: [],
-    requiresHumanInput: false,
+    missingFields: requiresHumanInput ? (destination === 'Unknown' ? ['destination'] : ['budget']) : [],
+    requiresHumanInput,
+    humanPromptOptions,
+    clarificationPrompt,
     validationPassed: true,
     validationIssues: [],
     validationFeedback: 'Itinerary passed all validation checks!',
     retryCount: 1,
     userLongTermPreferences,
-    weatherForecast,
-    transportOptions,
+    weatherForecast: requiresHumanInput ? null : weatherForecast,
+    transportOptions: requiresHumanInput ? [] : transportOptions,
     placesFound: [],
-    budgetBreakdown,
-    itinerary,
-    agentLogs: [
+    budgetBreakdown: requiresHumanInput ? null : budgetBreakdown,
+    itinerary: requiresHumanInput ? null : itinerary,
+    agentLogs: requiresHumanInput ? [
+      {
+        agent: 'Requirement Analyzer Agent',
+        status: 'PAUSED_FOR_HUMAN_INPUT',
+        timestamp: new Date().toLocaleTimeString(),
+        details: `Missing requirement details detected (Destination: ${destination}, Budget: ${budget}). Pausing graph execution for Human-in-the-Loop clarification.`,
+      }
+    ] : [
       {
         agent: 'Requirement Analyzer Agent',
         status: 'SUCCESS',
@@ -309,3 +339,4 @@ export const runRequirementAnalysis = async (userRequest = '', userLongTermPrefe
     ],
   };
 };
+

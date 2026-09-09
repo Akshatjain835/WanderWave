@@ -13,6 +13,7 @@ class RequirementAnalysisModel(BaseModel):
     travelers: int = Field(description="Number of travelers as an integer")
     interests: List[str] = Field(description="List of travel interest keywords, e.g. Trekking, Museums, Cafes, Beaches")
     travel_style: str = Field(description="Travel style: Adventure, Relaxed, Cultural, Luxury, Budget, Balanced")
+    must_visit_places: List[str] = Field(default_factory=list, description="List of specific landmarks or spots the user explicitly wants to visit, e.g. ['Fort Aguada', 'Baga Beach']")
     missing_fields: List[str] = Field(default_factory=list, description="Any critical missing fields from request e.g. destination")
     analysis_summary: str = Field(description="1-sentence clear analysis summary of requirements")
 
@@ -23,6 +24,8 @@ async def requirement_agent_node(state: TripState) -> Dict[str, Any]:
     api_key = os.getenv("GEMINI_API_KEY", "")
     structured_output = None
 
+    user_must_visits = state.get("must_visit_places", [])
+
     if api_key:
         try:
             llm = get_llm(temperature=0.2, max_retries=1, request_timeout=10)
@@ -31,13 +34,15 @@ async def requirement_agent_node(state: TripState) -> Dict[str, Any]:
 
             prompt = f"""
 System Role: You are the Requirement Analyzer Agent in WanderWave's Agentic AI Trip Planner.
-Your job is to dynamically parse ANY raw user travel prompt into structured parameters.
+Your sole job is to strictly extract travel parameters ONLY if explicitly mentioned in the user's raw prompt.
 
 User Raw Request: "{user_request}"
+Pre-specified Must Visit Places (if any): {user_must_visits}
 
-Instructions:
-1. Extract destination, starting_city (default to 'Delhi' if unspecified), duration in days (default 5), numeric budget, travelers count, interests array, and travel_style.
-2. If the user prompt DOES NOT explicitly specify a valid destination city/region, set destination="Unknown" and add "destination" to missing_fields.
+CRITICAL HITL RULES:
+1. DESTINATION: Check if the user explicitly named a valid destination city or region (e.g. "Goa", "Paris", "Tokyo"). If NO destination is explicitly named, or if the user prompt is generic like "plan a trip", "vacation", "take me somewhere", set destination="Unknown" and add "destination" to missing_fields. DO NOT guess or default a destination.
+2. BUDGET: Check if the user explicitly named a numeric budget (e.g. "under 30000", "50k", "$2000"). If NO budget amount is explicitly stated, set budget=0.0 and add "budget" to missing_fields. DO NOT invent or default a budget.
+3. Extract starting_city (default 'Delhi' if omitted), duration (default 5 if omitted), travelers (default 2), interests array, travel_style, and must_visit_places (array of specific requested spots/landmarks e.g. Fort Aguada, Baga Beach). Combine with Pre-specified Must Visit Places if provided.
             """
             structured_output = await structured_llm.ainvoke(prompt)
         except Exception as e:
@@ -72,13 +77,15 @@ Instructions:
         if day_match:
             duration = int(day_match.group(1))
 
-        budget = 30000.0
+        budget = 0.0
         k_match = re.search(r'(\d+)\s*k', text)
         num_match = re.search(r'(\d{4,6})', text)
         if k_match:
             budget = float(k_match.group(1)) * 1000.0
         elif num_match:
             budget = float(num_match.group(1))
+        else:
+            missing_fields.append("budget")
 
         travelers = 2
         people_match = re.search(r'(\d+)\s*(people|person|traveler|travelers|friends)', text)
@@ -86,6 +93,14 @@ Instructions:
             travelers = int(people_match.group(1))
 
         interests = ["Sightseeing", "Cafes", "Local Culture"]
+
+        parsed_must_visits = list(user_must_visits)
+        mv_match = re.findall(r'(?:must visit|must see|include|visit)\s+([a-zA-Z0-9\s]+?)(?:,|and|\.|$)', text, re.IGNORECASE)
+        if mv_match:
+            for item in mv_match:
+                cleaned = item.strip().title()
+                if cleaned and len(cleaned) > 2 and cleaned not in parsed_must_visits:
+                    parsed_must_visits.append(cleaned)
 
         structured_output = RequirementAnalysisModel(
             destination=destination,
@@ -95,19 +110,26 @@ Instructions:
             travelers=travelers,
             interests=interests,
             travel_style=user_long_term_prefs.get("travelStyle", "Adventure"),
+            must_visit_places=parsed_must_visits,
             missing_fields=missing_fields,
             analysis_summary=f"Parsed request for {destination}: {duration} days, INR {budget} budget."
         )
 
     requires_hitl = state.get("requires_human_input", False)
-    if structured_output.destination == "Unknown" or "destination" in structured_output.missing_fields or structured_output.destination.lower() in ["unknown", "trip", "vacation"]:
+    if (
+        structured_output.destination == "Unknown"
+        or "destination" in structured_output.missing_fields
+        or structured_output.destination.lower() in ["unknown", "trip", "vacation", "place", "somewhere", "anywhere"]
+        or structured_output.budget <= 0
+        or "budget" in structured_output.missing_fields
+    ):
         requires_hitl = True
 
     log_entry = {
-        "agent": "Requirement Analyzer Agent (LLM Dynamic Node)",
+        "agent": "Requirement Analyzer Agent",
         "status": "PAUSED_FOR_HUMAN_INPUT" if requires_hitl else "SUCCESS",
         "timestamp": datetime.datetime.now().strftime("%H:%M:%S"),
-        "details": f"Parsed parameters: Destination={structured_output.destination}. HITL Interruption: {requires_hitl}"
+        "details": f"Parsed parameters: Destination={structured_output.destination}, Must Visit Places={structured_output.must_visit_places}. HITL Interruption: {requires_hitl}"
     }
 
     existing_logs = state.get("agent_logs", [])
@@ -119,6 +141,7 @@ Instructions:
         "travelers": structured_output.travelers,
         "interests": structured_output.interests,
         "travel_style": structured_output.travel_style,
+        "must_visit_places": structured_output.must_visit_places,
         "missing_fields": structured_output.missing_fields,
         "requires_human_input": requires_hitl,
         "agent_logs": existing_logs + [log_entry]

@@ -33,10 +33,10 @@ export const PlanTrip = () => {
 
   const [inputMode, setInputMode] = useState('wizard'); // 'wizard' | 'prompt'
   const [prompt, setPrompt] = useState('');
-  const [destination, setDestination] = useState('Goa');
+  const [destination, setDestination] = useState('');
   const [startingCity, setStartingCity] = useState('Delhi');
   const [duration, setDuration] = useState(4);
-  const [budget, setBudget] = useState(25000);
+  const [budget, setBudget] = useState('');
   const [travelers, setTravelers] = useState(2);
   const [travelStyle, setTravelStyle] = useState(user?.preferences?.travelStyle || 'Relaxed');
 
@@ -87,26 +87,35 @@ export const PlanTrip = () => {
     setError(null);
     setActiveAgentStep(1);
 
-    const stepInterval = setInterval(() => {
-      setActiveAgentStep((prev) => (prev < 5 ? prev + 1 : prev));
-    }, 600);
-
-    const currentDest = customData.destination || destination.trim() || 'Goa';
+    const isPromptMode = customData.isPromptMode !== undefined ? customData.isPromptMode : inputMode === 'prompt';
+    const currentDest = customData.destination !== undefined 
+      ? customData.destination 
+      : (isPromptMode ? undefined : (destination.trim() || undefined));
+    const currentBudget = customData.budget !== undefined
+      ? (customData.budget === null ? undefined : Number(customData.budget))
+      : (isPromptMode ? undefined : Number(budget));
     const currentOrigin = customData.startingCity || startingCity.trim() || 'Delhi';
 
     try {
-      const response = await api.post('/trips/analyze', {
+      const payload = {
         prompt: activePrompt,
-        destination: currentDest,
         startingCity: currentOrigin,
         duration: Number(customData.duration || duration),
-        budget: Number(customData.budget || budget),
         travelers: Number(customData.travelers || travelers),
         interests: customData.interests || ['Sightseeing', 'Cafes', 'Local Culture'],
         travelStyle: customData.travelStyle || travelStyle,
         inputCurrency: customData.inputCurrency || 'USD',
         displayCurrency: customData.displayCurrency || customData.inputCurrency || 'USD',
-      });
+        mustVisitPlaces: customData.mustVisitPlaces || [],
+      };
+      if (currentDest) {
+        payload.destination = currentDest;
+      }
+      if (currentBudget !== undefined && !isNaN(currentBudget) && currentBudget > 0) {
+        payload.budget = currentBudget;
+      }
+
+      const response = await api.post('/trips/analyze', payload);
 
       if (response.data.success) {
         const resData = response.data.data;
@@ -115,31 +124,29 @@ export const PlanTrip = () => {
           resData.itinerary.displayCurrency = customData.displayCurrency || customData.inputCurrency || 'USD';
         }
         setAnalysisResult(resData);
-        if (response.data.data?.requiresHumanInput) {
+        if (resData?.requiresHumanInput) {
           setIsHITLModalOpen(true);
+          setActiveAgentStep(1);
+        } else {
+          setActiveAgentStep(5);
         }
-        setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Analysis failed');
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Error analyzing trip request. Check backend server.');
     } finally {
-      clearInterval(stepInterval);
       setAnalyzing(false);
     }
   };
 
   const handleAnalyzePrompt = (e) => {
     if (e) e.preventDefault();
-    const currentDest = destination.trim() || 'Goa';
-    const currentOrigin = startingCity.trim() || 'Delhi';
-    const activePrompt = (prompt.trim() && prompt.toLowerCase().includes(currentDest.toLowerCase()))
-      ? prompt.trim()
-      : `Plan a ${duration} day trip to ${currentDest} from ${currentOrigin} under ${budget} for ${travelers} people with ${travelStyle} travel style`;
+    const activePrompt = prompt.trim() || 'Plan a trip for me';
     
-    executePipelineRequest(activePrompt);
+    executePipelineRequest(activePrompt, { isPromptMode: true });
   };
+
 
   const handleWizardSubmit = (generatedPrompt, formData) => {
     setDestination(formData.destination);
@@ -157,9 +164,18 @@ export const PlanTrip = () => {
     setActiveAgentStep(2);
     setIsHITLModalOpen(false);
 
-    const chosenDest = option.destination || destination || 'Goa';
-    const chosenBudget = option.budget || budget || 25000;
-    const chosenDuration = option.duration || duration || 4;
+    let chosenDest = option.destination;
+    let chosenBudget = option.budget;
+    let chosenDuration = option.duration;
+
+    if (!chosenDest && option.label) {
+      const matchDest = option.label.match(/(?:to|visit|in|around)\s+([A-Za-z\s]+)/i);
+      if (matchDest) chosenDest = matchDest[1].trim();
+    }
+
+    chosenDest = chosenDest || destination || 'Goa';
+    chosenBudget = chosenBudget !== undefined ? Number(chosenBudget) : (budget ? Number(budget) : 30000);
+    chosenDuration = chosenDuration !== undefined ? Number(chosenDuration) : Number(duration || 5);
 
     if (option.destination) setDestination(option.destination);
     if (option.budget) setBudget(option.budget);
@@ -180,8 +196,10 @@ export const PlanTrip = () => {
         setAnalysisResult(response.data.data);
         if (response.data.data?.requiresHumanInput) {
           setIsHITLModalOpen(true);
+          setActiveAgentStep(1);
+        } else {
+          setActiveAgentStep(5);
         }
-        setActiveAgentStep(5);
       } else {
         setError(response.data.message || 'Failed to resume graph execution.');
       }
@@ -191,6 +209,7 @@ export const PlanTrip = () => {
       setResuming(false);
     }
   };
+
 
   const handleSaveTrip = async () => {
     if (!analysisResult?.itinerary) return;
@@ -368,6 +387,7 @@ export const PlanTrip = () => {
                     type="text"
                     value={destination}
                     onChange={(e) => handleDestinationChange(e.target.value)}
+                    placeholder="e.g. Goa (or leave blank for HITL)"
                     className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium"
                   />
                 </div>
@@ -407,6 +427,7 @@ export const PlanTrip = () => {
                     step={1000}
                     value={budget}
                     onChange={(e) => setBudget(e.target.value)}
+                    placeholder="e.g. 25000 (or leave blank for HITL)"
                     className="w-full py-2 px-3 glass-input rounded-xl text-xs font-medium font-mono text-emerald-300"
                   />
                 </div>
@@ -519,7 +540,7 @@ export const PlanTrip = () => {
 
           {analysisResult && !analysisResult.requiresHumanInput && !analyzing && !resuming && (
             <div className="space-y-6 animate-in fade-in duration-200">
-              {/* STAR OF THE APPLICATION: The Timeline Itinerary Viewer */}
+              {/* Timeline Itinerary Viewer */}
               <ItineraryViewer
                 itinerary={analysisResult.itinerary}
                 onSaveTrip={handleSaveTrip}

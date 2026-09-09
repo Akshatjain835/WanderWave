@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import api from '../services/api';
 import { fetchDestinationImage } from '../services/imageService';
+import { LocationFeasibilityCard } from './LocationFeasibilityCard';
 
 const CURRENCY_SYMBOLS = {
   INR: '₹',
@@ -81,7 +82,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [toastNotice, setToastNotice] = useState(null);
 
-  // Change 3 — Agentic AI Reasoning Process Modal State
+  // Reasoning Process Modal State
   const [showAgentProcessModal, setShowAgentProcessModal] = useState(false);
 
   useEffect(() => {
@@ -156,7 +157,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         </div>
       )}
 
-      {/* Change 3 — Agentic AI Reasoning Process Modal */}
+      {/* AI Reasoning Process Modal */}
       {showAgentProcessModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md animate-in fade-in duration-200">
           <div className="glass-panel p-6 sm:p-8 rounded-3xl border border-cyan-500/30 max-w-xl w-full space-y-6 shadow-2xl relative bg-slate-900/95 max-h-[85vh] overflow-y-auto">
@@ -268,7 +269,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
               </div>
             </div>
 
-            {/* Change 5 — Agentic AI Partial Re-planning Flow Banner */}
+            {/* Partial Re-planning Flow Banner */}
             <div className="p-3 rounded-xl bg-slate-950 border border-cyan-500/20 text-[10px] font-mono text-cyan-300 flex items-center justify-between gap-1 overflow-x-auto">
               <span>User Feedback</span>
               <span className="text-slate-500">➔</span>
@@ -330,7 +331,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         </div>
       )}
 
-      {/* Change 2 — Premium Destination Hero Cover Banner */}
+      {/* Destination Hero Cover Banner */}
       <div className="relative rounded-3xl overflow-hidden shadow-2xl border border-slate-800 min-h-[280px] sm:min-h-[340px] flex flex-col justify-end p-6 sm:p-8 bg-slate-950">
         {coverImageUrl && (
           <div
@@ -347,7 +348,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
                 <Sparkles className="w-3.5 h-3.5" /> AI Generated Travel Plan
               </span>
 
-              {/* Change 2 — Big Bold Hero Title (e.g. GOA • 4 Days • 2 Travelers) */}
+              {/* Hero Title */}
               <h1 className="text-4xl sm:text-6xl font-black text-white tracking-tight uppercase drop-shadow-md">
                 {itinerary.destination || 'GOA'}
               </h1>
@@ -357,7 +358,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
             </div>
 
             <div className="flex flex-wrap items-center gap-3">
-              {/* Change 3 — See how WanderWave planned this trip Button */}
+              {/* Agent Process Modal Trigger */}
               <button
                 onClick={() => setShowAgentProcessModal(true)}
                 className="px-4 py-3 rounded-2xl bg-indigo-600/90 hover:bg-indigo-500 text-white font-extrabold text-xs flex items-center gap-2 transition-all shadow-lg shadow-indigo-500/25 border border-indigo-400/30 backdrop-blur-md"
@@ -537,7 +538,16 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         );
       })()}
 
-      {/* Change 4 & 6 — Grounding, Trust & Validation Cards Grid */}
+      {/* Dedicated Location Weather & Geography Feasibility Advisor Card */}
+      <LocationFeasibilityCard
+        locationFeasibility={itinerary.locationFeasibility || itinerary.location_feasibility}
+        travelIntelligence={itinerary.travelIntelligence || itinerary.travel_intelligence}
+        mustVisitPlacesStatus={itinerary.mustVisitPlacesStatus || itinerary.must_visit_places_status}
+        destination={itinerary.destination}
+        duration={itinerary.duration_days || itinerary.duration}
+      />
+
+      {/* Grounding, Trust & Validation Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* AI Research Sources Card */}
         <div className="glass-panel p-5 rounded-2xl border border-cyan-500/30 space-y-3 bg-slate-900/80 shadow-lg">
@@ -654,7 +664,7 @@ export const ItineraryViewer = ({ itinerary: initialItinerary, onSaveTrip, onIti
         </div>
       </div>
 
-      {/* Change 2 — Timeline Planner with Downwards Arrows (↓) */}
+      {/* Timeline Planner */}
       <div className="space-y-8">
         {itinerary.days.map((dayData) => {
           const isCollapsed = expandedDays[dayData.day_number];
